@@ -1,0 +1,124 @@
+package cl.cam.ac.uk.tuneful;
+
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.Arrays;
+import java.util.Hashtable;
+import java.util.List;
+
+import cl.cam.ac.uk.tuneful.util.TunefulFactory;
+
+public class SignificanceAnalyzer {
+
+	List<String> allParamsNames = null;
+	Hashtable<String, List<String>> sigParamsNames = null;
+	Hashtable<String, ConfParam> paramRanges = null;
+	int n_SA_rounds;
+	Hashtable<String, Integer> n_executions;
+	int n_samples_per_SA;
+	Hashtable<String, Integer> current_SA_round;
+
+	public SignificanceAnalyzer() {
+		n_SA_rounds = 2; // TODO: make configurable
+		n_samples_per_SA = 10; // samples per SA round
+		current_SA_round = new Hashtable<String, Integer>();
+		n_executions = new Hashtable<String, Integer>();// number of WL executions
+		allParamsNames = TunefulFactory.getTunableParams();
+		paramRanges = TunefulFactory.getTunableParamsRange();
+		sigParamsNames = new Hashtable<String, List<String>>();
+
+	}
+
+	public Hashtable<String, String> suggestNextConf(String appName) {
+
+		if (!sigParamsNames.contains(appName)) {// the first time to execute this WL so initialize sig params with all
+												// the params
+			sigParamsNames.put(appName, allParamsNames); // all params are significant initially then shrink after each
+															// round
+		} else if (n_executions.get(appName) >= n_samples_per_SA) { // should do SA round
+			if (!current_SA_round.contains(appName))
+				current_SA_round.put(appName, new Integer(0));
+			else
+				current_SA_round.put(appName, new Integer(current_SA_round.get(appName).intValue() + 1));
+
+			List<String> sigParams = performSARound(appName);
+			TunefulFactory.getConfigurationSampler().createNewSampler(appName, sigParams.size()); // to handle the new
+																									// sig params space
+			sigParamsNames.put(appName, sigParams);
+			n_executions.put(appName, 0); // reset the number of execution for the new SA round
+		}
+		n_executions.put(appName, n_executions.get(appName) + 1); // increment number of samples
+		return TunefulFactory.getConfigurationSampler().sample(appName, sigParamsNames.get(appName));
+
+	}
+
+	private List<String> performSARound(String appName) {
+	    String SA_PYTHON_SCRIPT = this.getClass().getResource("SA.py").getPath();
+		String samplesFileName = TunefulFactory.getSamplesFileName(appName, current_SA_round.get(appName));
+		String command = "cmd /c python " + SA_PYTHON_SCRIPT + " " + samplesFileName;
+		Process p;
+		try {
+			p = Runtime.getRuntime().exec(command);
+			p.waitFor();
+			BufferedReader bri = new BufferedReader(new InputStreamReader(p.getInputStream()));
+			BufferedReader bre = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+			String line;
+			while ((line = bri.readLine()) != null) {
+				System.out.println(line);
+			}
+			bri.close();
+			while ((line = bre.readLine()) != null) {
+				System.out.println(line);
+			}
+			bre.close();
+			p.waitFor();
+			System.out.println("Done.");
+
+			p.destroy();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return readSigParams((String) TunefulFactory.getSigParamsFileName(appName, current_SA_round.get(appName)));
+
+	}
+
+	private List<String> readSigParams(String sigParamsFileName) {
+
+		FileReader fr;
+		try {
+			fr = new FileReader(sigParamsFileName);
+			BufferedReader br = new BufferedReader(fr);
+			String line = br.readLine();
+			String[] params = line.split(",");
+			return Arrays.asList(params);
+
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	public static void main(String[] args) {
+		
+		// testing
+		
+		TunefulFactory.getConfigurationSampler().createNewSampler("test", 5);
+		System.out.println(">>>>" + TunefulFactory.getConfigurationSampler().getNextSample("test").values());
+		System.out.println(">>>>" + TunefulFactory.getConfigurationSampler().getNextSample("test").values());
+		System.out.println(">>>>" + TunefulFactory.getConfigurationSampler().getNextSample("test").values());
+		System.out.println(">>>>" + TunefulFactory.getConfigurationSampler().getNextSample("test").values());
+		System.out.println(">>>>" + TunefulFactory.getConfigurationSampler().getNextSample("test").values());
+	}
+}
