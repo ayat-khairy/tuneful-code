@@ -1,0 +1,1 @@
+spark.executor.memory,spark.rdd.compress,spark.executor.cores

@@ -91,24 +91,21 @@ public class ConfigurationSampler {
 //	}
 
 	public Hashtable<String, String> sample(String appName, List<String> sigParams) {
-		if (sigParams.size() == allparamsNames.size()) /// at the first round
-		{
-			if (!samplers.contains(appName))
-				samplers.put(appName, new SobolSequenceGenerator(sigParams.size())); // initialize sampler
-			return getNextSample(appName);
-		} else {
-			// TODO : check the python code
-			double[] sample = samplers.get(appName).nextVector();
-			Hashtable<String, String> sampleConf = mapSampleToConf(sample, sigParams);
 
+		double[] sample = samplers.get(appName).nextVector();
+		Hashtable<String, String> sampleConf = mapSampleToConf(sample, sigParams);
+		System.out.println("sample >>> " + sample);
+		System.out.println("mapped conf >>> " + sampleConf);
+		if (sigParams.size() < allparamsNames.size()) {
 			for (int i = 0; i < allparamsNames.size(); i++) {
 				String param = allparamsNames.get(i);
-				if (!sampleConf.contains(param)) { // fixed param
+				if (!sampleConf.containsKey(param) && getAvgValue(param)!=null) { // fixed param and param other than bool and enum, enum and bool will have null avg value
 					sampleConf.put(param, getAvgValue(param));
 				}
 			}
-			return sampleConf;
 		}
+		return sampleConf;
+
 	}
 
 	public void createNewSampler(String appName, int size) {

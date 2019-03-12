@@ -92,6 +92,7 @@ public class TunefulFactory {
 	public static SignificanceAnalyzer getSignificanceAnalyzer() {
 		if (significanceAnalyzer == null) {
 			significanceAnalyzer = new SignificanceAnalyzer();
+			System.out.println("SIg Analyzer created ...");
 
 		}
 		return significanceAnalyzer;
