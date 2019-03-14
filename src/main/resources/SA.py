@@ -1,4 +1,6 @@
 import numpy as np
+import sys
+import time
 from numpy import newaxis
 #import matplotlib.pyplot as plt
 #import matplotlib.cm as cm
@@ -12,7 +14,7 @@ from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 from sklearn import metrics
 from sklearn.ensemble import ExtraTreesRegressor
-from sample_30params import *
+#from sample_30params import *
 from sklearn.feature_selection import VarianceThreshold, RFE, SelectFromModel
 
 
@@ -28,9 +30,10 @@ def variance_threshold_selector(data, threshold):
 def load_features (features_fileName, n_params):
   features = []
   target = []
+  n_params = int(n_params)
   with open(features_fileName) as csvfile:
       readerCSV = csv.reader(csvfile, delimiter=',')
-      header = readerCSV.next()
+      header = next(readerCSV)
       header = header [:n_params]
 #      print (">>> header >>> " , header)
       for r in readerCSV:
@@ -39,7 +42,7 @@ def load_features (features_fileName, n_params):
 
   print (">>>> length >>> ", len (features))
 
-  features = np.reshape (features, (len (features)/n_params,n_params))
+  features = np.reshape (features, (int(len (features)/n_params),n_params))
   features = features.astype ('float')
   return header , features , target
 
@@ -57,7 +60,6 @@ def scale_data(data):
 
 ### scale the features
 def get_sig_params (header , features , target , fraction):
-  features = []
   start_time = int(time.time())
   search_time = 0
   from sklearn.feature_selection import VarianceThreshold
@@ -68,19 +70,20 @@ def get_sig_params (header , features , target , fraction):
   global  n_iterations 
   model = ExtraTreesRegressor ()
   error_all_itr=[]
-  n_params  = int (fraction* len (header))
+
+  n_params  = int(float(fraction) *len (header))
 ####### build the model 100 time to overcome model randomness ###########
   for x in range (n_iterations):
           all_params = [0] * 30
           model.fit (scaled_features , target)
- 	      normalized_importance =  100 * (model.feature_importances_ /max (model.feature_importances_)) 
+          normalized_importance =  100 * (model.feature_importances_ /max (model.feature_importances_)) 
           indices  = normalized_importance.argsort()[-n_params:][::-1]
           indices = np.array (indices)
           all_params = np.array (all_params)
           all_params [indices] = 1  # set the indices of the seleced params to 1
   #        print ("all_params >>>> " , all_params)
           sig_conf_all_iterations= np.append(sig_conf_all_iterations , all_params)
-  sig_conf_all_iterations = np.reshape (sig_conf_all_iterations ,  (number_of_iterations , 30))
+  sig_conf_all_iterations = np.reshape (sig_conf_all_iterations ,  (n_iterations , 30))
   sig_conf_all_iterations = np.count_nonzero (sig_conf_all_iterations , axis = 0)    # count the occurances of each param in the sig params over all the interations
   header = np.array (header) 
   indices = sig_conf_all_iterations.argsort()[-n_params:][::-1] # select the params that have the most occurances in the sig params over all the interations
@@ -143,22 +146,20 @@ def get_inf_params(scores):
 
 ########################################
 #####################################################
-def perform_SA (samples_file, result_file , n_params  fraction ):
+def perform_SA(samples_file, result_file , n_params  , fraction ):
     sig_conf = []
     sig_conf_indices = []
     header , samples , target = load_features(samples_file , n_params)
     sig_params  = get_sig_params (header , samples , target , fraction)
-    write_to_file (sig_params , result_file)
+    write_to_file (sig_params ,  result_file)
     return sig_conf
 ########################################
 ########################################################
-def write_to_file ( sig_params , res_file):
-   global header
-   header = list (header)
-   file = open (res_file , "a")
-   indices2 = []
+def write_to_file ( sig_params ,  res_file):
+   
+   file = open (res_file , "w")
    for x in sig_params :
-        file.write ( sig_params[i] + " , " )
+        file.write ( x + " , " )
    file.write (  " \n" )
    file.close()
 #######################################
@@ -170,5 +171,5 @@ samples_file = sys.argv[1]
 n_params = sys.argv[2]
 fraction = sys.argv[3]
 result_file = sys.argv[4]
-peform_SA (samples_file, result_file , n_params , fraction)
+perform_SA(samples_file, result_file , n_params , fraction)
 
