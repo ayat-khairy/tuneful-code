@@ -225,7 +225,7 @@ public class CostModeler {
 			final Map<String, String> envMap = new HashMap<String, String>(System.getenv());
 			String pythonHome = envMap.get("PYTHON_HOME");
 			File file = new File(new CostModeler().getClass().getClassLoader()
-					.getResource("org\\apache\\spark\\spearmint-lite\\spearmint-lite.py").toURI().getPath());
+					.getResource("spearmint-lite\\spearmint-lite.py").toURI().getPath());
 //			File file = new File (new CostModeler().getClass().getClassLoader()
 //					.getResource("test.py").toURI()
 //					.getPath());
