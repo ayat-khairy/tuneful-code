@@ -6,8 +6,10 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 
 import cl.cam.ac.uk.tuneful.util.TunefulFactory;
 
@@ -20,7 +22,7 @@ public class SignificanceAnalyzer {
 	Hashtable<String, Integer> n_executions;
 	int n_samples_per_SA;
 	Hashtable<String, Integer> current_SA_round;
-
+    float fraction;
 	public SignificanceAnalyzer() {
 		n_SA_rounds = 2; // TODO: make configurable
 		n_samples_per_SA = 3; // samples per SA round
@@ -29,16 +31,17 @@ public class SignificanceAnalyzer {
 		allParamsNames = TunefulFactory.getTunableParams();
 		paramRanges = TunefulFactory.getTunableParamsRange();
 		sigParamsNames = new Hashtable<String, List<String>>();
-
+        fraction = 0.6f;  //TODO: make configurable
 	}
 
 	public Hashtable<String, String> suggestNextConf(String appName) {
 
-		if (!sigParamsNames.containsKey(appName)) {// the first time to execute this WL so initialize sig params with all
-			System.out.println(">> app did not run before ...");									// the params
-			System.out.println("table size >> " +sigParamsNames.size());
+		if (!sigParamsNames.containsKey(appName)) {// the first time to execute this WL so initialize sig params with
+													// all
+			System.out.println(">> app did not run before ..."); // the params
+			System.out.println("table size >> " + sigParamsNames.size());
 			sigParamsNames.put(appName, allParamsNames); // all params are significant initially then shrink after each
-																		// round
+															// round
 			n_executions.put(appName, new Integer(0)); // init n_executions
 			current_SA_round.put(appName, new Integer(0)); // init SA_round
 			TunefulFactory.getConfigurationSampler().createNewSampler(appName, allParamsNames.size()); // init sampler
@@ -62,11 +65,19 @@ public class SignificanceAnalyzer {
 	private List<String> performSARound(String appName) {
 		String SA_PYTHON_SCRIPT = Thread.currentThread().getContextClassLoader().getResource("SA.py").getPath();
 		System.out.println(">>> " + SA_PYTHON_SCRIPT);
-		SA_PYTHON_SCRIPT = SA_PYTHON_SCRIPT.substring(1); // get rid of the extra "/" at the begining ... get rid of
+		SA_PYTHON_SCRIPT = SA_PYTHON_SCRIPT.substring(1); // get rid of the extra "/" at the begining ... get rid of//
 															// this line when testing on linux or mac
+		final Map<String, String> envMap = new HashMap<String, String>(System.getenv());
+		String python_home = envMap.get("PYTHON_HOME");
+
+		if (python_home == null) {
+			System.err.println("PYTHON_HOME is not set! ...");
+			return null;
+		}
+
 		String samplesFileName = TunefulFactory.getSamplesFileName(appName, current_SA_round.get(appName));
-		String command = "python " + SA_PYTHON_SCRIPT;
-		// + " " + samplesFileName;
+		String sigParamsFileName = (String) TunefulFactory.getSigParamsFileName(appName, current_SA_round.get(appName));
+		String command = python_home + "\\python " + SA_PYTHON_SCRIPT + " " + samplesFileName + " " + sigParamsNames.get(appName).size() + " " + fraction + " " + sigParamsFileName;
 		Process p;
 		try {
 			p = Runtime.getRuntime().exec(command);
@@ -93,9 +104,9 @@ public class SignificanceAnalyzer {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		String sigParamsFileName = (String) TunefulFactory.getSigParamsFileName(appName, current_SA_round.get(appName));
+		
 		List<String> readSigParams = readSigParams(sigParamsFileName);
-		System.out.println(">> SA_round >>"  + current_SA_round.get(appName) + ">> Sig Params" + readSigParams );
+		System.out.println(">> SA_round >>" + current_SA_round.get(appName) + ">> Sig Params" + readSigParams);
 		return readSigParams;
 
 	}
@@ -104,7 +115,8 @@ public class SignificanceAnalyzer {
 
 		FileReader fr;
 		try {
-			fr = new FileReader(Thread.currentThread().getContextClassLoader().getResource(sigParamsFileName).getPath());
+			fr = new FileReader(
+					Thread.currentThread().getContextClassLoader().getResource(sigParamsFileName).getPath());
 			BufferedReader br = new BufferedReader(fr);
 			String line = br.readLine();
 			String[] params = line.split(",");
