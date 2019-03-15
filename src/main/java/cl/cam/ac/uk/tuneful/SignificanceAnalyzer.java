@@ -1,8 +1,10 @@
 package cl.cam.ac.uk.tuneful;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Arrays;
@@ -161,4 +163,30 @@ public class SignificanceAnalyzer {
 	public Hashtable<String, ConfParam> getAllParams() {
 		return allparams;
 	}
+
+	public boolean isSigParamDetected(String appName) {
+		if (current_SA_round.get(appName) == null)
+			return false;
+		return current_SA_round.get(appName).intValue() == 2;
+	}
+
+	public void storeAppExecution(SparkConf sparkConf, long execTime, String appName) {
+		try {
+			String samplesFileName = TunefulFactory.getSamplesFileName(appName, current_SA_round.get(appName));
+			FileWriter fileWriter = new FileWriter(samplesFileName);
+			List<String> sigParams = sigParamsNames.get(appName);
+			BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+			String appExec = "";
+			for (int i = 0; i < sigParams.size(); i++) {
+				appExec += sparkConf.get(sigParams.get(i)) + ",";
+			}
+			bufferedWriter.write(appExec+"\n");
+			bufferedWriter.flush();
+			bufferedWriter.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+	}
+
 }

@@ -48,8 +48,8 @@ public class TunefulFactory {
 		return monitor;
 	}
 
-	public static CostModeler getCostModeler(String modelPath) {
-		return new CostModeler(modelPath);
+	public static CostModeler getCostModeler() {
+		return new CostModeler();
 	}
 
 	public static List<String> getTunableParams() {

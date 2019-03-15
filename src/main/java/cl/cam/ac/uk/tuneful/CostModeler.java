@@ -38,10 +38,9 @@ public class CostModeler {
 	}
 
 	// write the config Json file for Spearmint to start the GP optimisation
-	public void writeParamsJsonFile(String appName) {
+	private void writeParamsJsonFile(String appName) {
 		// write each param name, type, min, max in the app dir
-		String filePath = MODEL_INPUT_PATH_BASE + appName + "\\config.json"; // TODO: add line to check if dir does not
-																				// exist then create
+		String filePath = MODEL_INPUT_PATH_BASE + appName + "\\config.json";
 		List<String> confParams = TunefulFactory.getSignificanceAnalyzer().getSignificantParams(appName);
 		for (int i = 0; i < confParams.size(); i++) {
 			ConfParam currentParam = TunefulFactory.getSignificanceAnalyzer().getAllParams().get(confParams.get(i));
@@ -79,8 +78,8 @@ public class CostModeler {
 		return updatedConf;
 	}
 
-
-	private void writeToModelInput(Hashtable conf, double cost, String appName) {
+	public void writeToModelInput(SparkConf sparkConf, double cost, String appName) {
+		Hashtable conf = getTunableParams(sparkConf , appName);
 		FileWriter fileWriter;
 		try {
 			String appModelInputPath = MODEL_INPUT_PATH_BASE + appName + "\\result.dat";
@@ -161,17 +160,17 @@ public class CostModeler {
 		}
 		return conf;
 	}
+// get the tunable conf from SparkConf
+	private Hashtable<String, String> getTunableParams(SparkConf sparkconf, String appName) {
+		Hashtable<String, String> tunableParams = new Hashtable<String, String>();
+		List<String> confParams = TunefulFactory.getSignificanceAnalyzer().getSignificantParams(appName);
+		for (int i = 0; i < confParams.size(); i++) {
+			tunableParams.put(confParams.get(i), sparkconf.get(confParams.get(i)));
+		}
+		return tunableParams;
+	}
 
-//	private Hashtable<String, String> getTunableParams(SparkConf sparkconf, String appName) {
-//		Hashtable<String, String> tunableParams = new Hashtable<String, String>();
-//		List<String> confParams = TunefulFactory.getSignificanceAnalyzer().getSignificantParams(appName);
-//		for (int i = 0; i < confParams.size(); i++) {
-//			tunableParams.put(confParams.get(i), sparkconf.get(confParams.get(i)));
-//		}
-//		return tunableParams;
-//	}
-
-	public void updateModel(String appName, Hashtable<String, String> conf, double cost) {
+	public void updateModel(String appName, SparkConf conf, double cost) {
 
 		writeToModelInput(conf, cost, appName);
 		runSpearmint(appName);
@@ -189,6 +188,8 @@ public class CostModeler {
 	private void runSpearmint(String appName) {
 
 		try {
+			if (!confFileExists(appName))
+				writeParamsJsonFile(appName);
 			String appModelDir = MODEL_INPUT_PATH_BASE + appName;
 			final Map<String, String> envMap = new HashMap<String, String>(System.getenv());
 			String pythonHome = envMap.get("PYTHON_HOME");
@@ -221,6 +222,12 @@ public class CostModeler {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+
+	private boolean confFileExists(String appName) {
+		File filePath = new File (MODEL_INPUT_PATH_BASE + appName + "\\config.json"); 
+		return (filePath.exists() && !filePath.isDirectory()); 
+		
 	}
 
 	public static void main(String[] args) {
