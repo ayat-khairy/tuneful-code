@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -20,39 +21,55 @@ import cl.cam.ac.uk.tuneful.util.TunefulFactory;
 public class CostModeler {
 
 	private String modelPath = null;
-	private String MODEL_INPUT_PATH = "";
-	private String BASE_PATH = "";
-	private String[] confParams;
+	private String MODEL_INPUT_PATH_BASE;
 
-	public CostModeler(String modelPath) {
+	public CostModeler() {
 		try {
-			loadConfParams();
-			BASE_PATH = "\\home\\tuneful\\models";
-			this.setModelPath(BASE_PATH + "\\" + modelPath);
-			File directory = new File(modelPath);
+			MODEL_INPUT_PATH_BASE = this.getClass().getClassLoader().getResource("\\home\\tuneful\\spearmint-lite\\")
+					.toURI().getPath();
+			File directory = new File(MODEL_INPUT_PATH_BASE);
 			if (!directory.exists()) {
 				directory.mkdirs();
 			}
-			MODEL_INPUT_PATH = this.getClass().getClassLoader()
-					.getResource("org\\apache\\spark\\spearmint-lite\\tuneful").toURI().getPath() + "\\input";
 		} catch (URISyntaxException e) {
+			e.printStackTrace();
+		}
+
+	}
+
+	// write the config Json file for Spearmint to start the GP optimisation
+	public void writeParamsJsonFile(String appName) {
+		// write each param name, type, min, max in the app dir
+		String filePath = MODEL_INPUT_PATH_BASE + appName + "\\config.json"; // TODO: add line to check if dir does not
+																				// exist then create
+		List<String> confParams = TunefulFactory.getSignificanceAnalyzer().getSignificantParams(appName);
+		for (int i = 0; i < confParams.size(); i++) {
+			ConfParam currentParam = TunefulFactory.getSignificanceAnalyzer().getAllParams().get(confParams.get(i));
+			writeParamToFile(currentParam, filePath);
+
+		}
+	}
+
+	private void writeParamToFile(ConfParam currentParam, String filePath) {
+		FileWriter fileWriter;
+		try {
+			String appModelInputPath = filePath;
+			fileWriter = new FileWriter(appModelInputPath);
+			BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+			bufferedWriter.write(currentParam.toJsonString());
+			bufferedWriter.flush();
+			bufferedWriter.close();
+		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
 	}
 
-	private void loadConfParams() {
-		// TODO: add the remaining params
-		confParams = new String[] { "spark.executor.cores", "spark.executor.memory" };
-	}
-
-	public CostModeler() {
-		// TODO Auto-generated constructor stub
-	}
-
-	public SparkConf findCandidateConf(SparkConf conf) {
-		Hashtable<String , String> tunedConf = readPendingConf();
+	public SparkConf findCandidateConf(SparkConf conf, String appName) {
+		// generate pending conf using speamint
+		runSpearmint(appName);
+		Hashtable<String, String> tunedConf = readPendingConf(appName);
 		SparkConf updatedConf = conf;
 		Set<String> keys = tunedConf.keySet();
 		for (String key : keys) {
@@ -62,31 +79,15 @@ public class CostModeler {
 		return updatedConf;
 	}
 
-	public void buildModel(String appName, String fingerprintAppId) {
-		// get the cost and conf of fingerprintAppId
-		SparkConf fingerPrintconf = TunefulFactory.getConfigurationTuner().getFingerprintingConf(new SparkConf());
-		Hashtable fingerPrintTunedconf = getTunableParams(fingerPrintconf);
-		String finerprintAppId = (String) fingerPrintTunedconf.get("spark.app.id");
-		double fingerprintCost = TunefulFactory.getWorkloadMonitor().getAppExecCost(finerprintAppId);
-		String appId = TunefulFactory.getWorkloadMonitor().getAppId(appName);
-		Hashtable conf = TunefulFactory.getWorkloadMonitor().getWLConf(appName);
-		double appCost = TunefulFactory.getWorkloadMonitor().getAppExecCost((String) conf.get("spark.app.id"));
 
-		// get the cost and conf of any other random conf and write to a file
-		writeToModelInput(fingerPrintTunedconf, fingerprintCost);
-		writeToModelInput(conf, appCost);
-
-		// build the cost model in the model path
-		runModelBuildCommand();
-
-	}
-
-	private void writeToModelInput(Hashtable fingerPrintTunedconf, double fingerprintCost) {
+	private void writeToModelInput(Hashtable conf, double cost, String appName) {
 		FileWriter fileWriter;
 		try {
-			fileWriter = new FileWriter(MODEL_INPUT_PATH);
+			String appModelInputPath = MODEL_INPUT_PATH_BASE + appName + "\\result.dat";
+			fileWriter = new FileWriter(appModelInputPath);
 			BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
-			String line = fingerprintCost + " 0 " + getConfAsstr(fingerPrintTunedconf, confParams) + " \\n";
+			List<String> confParams = TunefulFactory.getSignificanceAnalyzer().getSignificantParams(appName);
+			String line = cost + " 0 " + getConfAsstr(conf, confParams) + " \\n";
 			bufferedWriter.write(line);
 			bufferedWriter.flush();
 			bufferedWriter.close();
@@ -97,20 +98,22 @@ public class CostModeler {
 
 	}
 
-	private String getConfAsstr(Hashtable conf, String[] confParams) {
+	private String getConfAsstr(Hashtable conf, List<String> confParams) {
 		String confAsStr = "";
-		for (int i = 0; i < confParams.length; i++) {
-			confAsStr += conf.get(confParams[i]);
+		for (int i = 0; i < confParams.size(); i++) {
+			confAsStr += conf.get(confParams.get(i)) + " ";
 		}
 		return confAsStr;
 	}
 
-	private void writePendingConf(Hashtable fingerPrintTunedconf) {
+	private void writePendingConf(Hashtable conf, String appName) {
 		FileWriter fileWriter;
 		try {
-			fileWriter = new FileWriter(MODEL_INPUT_PATH);
+			String appModelInputPath = MODEL_INPUT_PATH_BASE + appName + "\\result.dat";
+			fileWriter = new FileWriter(appModelInputPath);
 			BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
-			String line = "P P " + getConfAsstr(fingerPrintTunedconf, confParams) + " \\n";
+			List<String> confParams = TunefulFactory.getSignificanceAnalyzer().getSignificantParams(appName);
+			String line = "P P " + getConfAsstr(conf, confParams) + " \\n";
 			bufferedWriter.write(line);
 			bufferedWriter.flush();
 			bufferedWriter.close();
@@ -121,20 +124,22 @@ public class CostModeler {
 
 	}
 
-	private Hashtable readPendingConf() {
-		Hashtable <String, String>conf = new Hashtable<String , String>();
+	private Hashtable<String, String> readPendingConf(String appName) {
+		Hashtable<String, String> conf = new Hashtable<String, String>();
 		try {
-			FileReader fileReader = new FileReader(MODEL_INPUT_PATH);
+			String appModelDir = MODEL_INPUT_PATH_BASE + appName + "\\result.dat";
+			FileReader fileReader = new FileReader(appModelDir);
 			BufferedReader bufferedReader = new BufferedReader(fileReader);
 			String line;
 			line = bufferedReader.readLine();
 			String[] splittedLine = line.split(" ");
+			List<String> confParams = TunefulFactory.getSignificanceAnalyzer().getSignificantParams(appName);
 			while (line != null) {
-				if (splittedLine.length == confParams.length + 2) // number of elements per line
+				if (splittedLine.length == confParams.size() + 2) // number of elements per line
 				{
 					if (line.contains("P")) {
 						// parse line into conf and add to the hashtable
-						conf = parseLine(line);
+						conf = parseLine(line, confParams, appName);
 
 					}
 				}
@@ -147,30 +152,29 @@ public class CostModeler {
 		return conf;
 	}
 
-	private Hashtable<String , String> parseLine(String line) {
+	private Hashtable<String, String> parseLine(String line, List<String> confParams, String appName) {
 
-		Hashtable <String,String> conf = new Hashtable<String, String>();
+		Hashtable<String, String> conf = new Hashtable<String, String>();
 		String[] splittedLine = line.split(" ");
-		for (int i = 0; i < confParams.length; i++) {
-			conf.put(confParams[i], splittedLine[i + 2]);
+		for (int i = 2; i < confParams.size(); i++) {
+			conf.put(confParams.get(i - 2), splittedLine[i]);
 		}
 		return conf;
 	}
 
-	private Hashtable<String,String> getTunableParams(SparkConf fingerPrintconf) {
-		Hashtable<String, String> tunableParams = new Hashtable<String, String>();
-		for (int i = 0; i < confParams.length; i++) {
-			tunableParams.put(confParams[i], fingerPrintconf.get(confParams[i]));
-		}
-		return tunableParams;
-	}
+//	private Hashtable<String, String> getTunableParams(SparkConf sparkconf, String appName) {
+//		Hashtable<String, String> tunableParams = new Hashtable<String, String>();
+//		List<String> confParams = TunefulFactory.getSignificanceAnalyzer().getSignificantParams(appName);
+//		for (int i = 0; i < confParams.size(); i++) {
+//			tunableParams.put(confParams.get(i), sparkconf.get(confParams.get(i)));
+//		}
+//		return tunableParams;
+//	}
 
-	public void updateModel(String appId) {
-		/// get the execution instance and update the model with
-		Hashtable<String, String> conf = TunefulFactory.getWorkloadMonitor().getWLConf(appId);
-		double cost = TunefulFactory.getWorkloadMonitor().getAppExecCost(appId);
-		writeToModelInput(conf, cost);
-		runModelBuildCommand();
+	public void updateModel(String appName, Hashtable<String, String> conf, double cost) {
+
+		writeToModelInput(conf, cost, appName);
+		runSpearmint(appName);
 
 	}
 
@@ -182,20 +186,20 @@ public class CostModeler {
 		this.modelPath = modelPath;
 	}
 
-	private void runModelBuildCommand() {
+	private void runSpearmint(String appName) {
 
 		try {
-
+			String appModelDir = MODEL_INPUT_PATH_BASE + appName;
 			final Map<String, String> envMap = new HashMap<String, String>(System.getenv());
 			String pythonHome = envMap.get("PYTHON_HOME");
-			File file = new File(new CostModeler().getClass().getClassLoader()
-					.getResource("org\\apache\\spark\\spearmint-lite\\spearmint-lite.py").toURI().getPath());
+			File file = new File(this.getClass().getClassLoader().getResource("spearmint-lite\\spearmint-lite.py")
+					.toURI().getPath());
 
 			String pythonFile = file.getAbsolutePath();
 			System.out.println("file path >> " + pythonFile);
 
 			ProcessBuilder pb = new ProcessBuilder(pythonHome + "\\python ", pythonFile, "--driver=local",
-					"--method=GPEIOptChooser", "-method-args=noiseless=1");
+					"--method=GPEIOptChooser", "-method-args=noiseless=1", appModelDir);
 			pb.redirectError();
 			Process p = pb.start();
 

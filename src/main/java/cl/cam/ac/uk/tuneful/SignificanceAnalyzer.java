@@ -11,27 +11,30 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.spark.SparkConf;
+
 import cl.cam.ac.uk.tuneful.util.TunefulFactory;
 
 public class SignificanceAnalyzer {
 
 	List<String> allParamsNames;
 	Hashtable<String, List<String>> sigParamsNames;
-	Hashtable<String, ConfParam> paramRanges;
+	Hashtable<String, ConfParam> allparams;
 	int n_SA_rounds;
 	Hashtable<String, Integer> n_executions;
 	int n_samples_per_SA;
 	Hashtable<String, Integer> current_SA_round;
-    float fraction;
+	float fraction;
+
 	public SignificanceAnalyzer() {
 		n_SA_rounds = 2; // TODO: make configurable
 		n_samples_per_SA = 3; // samples per SA round
 		current_SA_round = new Hashtable<String, Integer>();
 		n_executions = new Hashtable<String, Integer>();// number of WL executions
 		allParamsNames = TunefulFactory.getTunableParams();
-		paramRanges = TunefulFactory.getTunableParamsRange();
+		allparams = TunefulFactory.getTunableParamsRange();
 		sigParamsNames = new Hashtable<String, List<String>>();
-        fraction = 0.6f;  //TODO: make configurable
+		fraction = 0.45f; // TODO: make configurable
 	}
 
 	public Hashtable<String, String> suggestNextConf(String appName) {
@@ -77,7 +80,8 @@ public class SignificanceAnalyzer {
 
 		String samplesFileName = TunefulFactory.getSamplesFileName(appName, current_SA_round.get(appName));
 		String sigParamsFileName = (String) TunefulFactory.getSigParamsFileName(appName, current_SA_round.get(appName));
-		String command = python_home + "\\python " + SA_PYTHON_SCRIPT + " " + samplesFileName + " " + sigParamsNames.get(appName).size() + " " + fraction + " " + sigParamsFileName;
+		String command = python_home + "\\python " + SA_PYTHON_SCRIPT + " " + samplesFileName + " "
+				+ sigParamsNames.get(appName).size() + " " + fraction + " " + sigParamsFileName;
 		Process p;
 		try {
 			p = Runtime.getRuntime().exec(command);
@@ -104,7 +108,7 @@ public class SignificanceAnalyzer {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 		List<String> readSigParams = readSigParams(sigParamsFileName);
 		System.out.println(">> SA_round >>" + current_SA_round.get(appName) + ">> Sig Params" + readSigParams);
 		return readSigParams;
@@ -148,5 +152,13 @@ public class SignificanceAnalyzer {
 		System.out.println(TunefulFactory.getSignificanceAnalyzer().suggestNextConf("test"));
 //		System.err.println(TunefulFactory.getSignificanceAnalyzer().performSARound("test"));
 		System.out.println(TunefulFactory.getSignificanceAnalyzer().suggestNextConf("test"));
+	}
+
+	public List<String> getSignificantParams(String appName) {
+		return sigParamsNames.get(appName);
+	}
+
+	public Hashtable<String, ConfParam> getAllParams() {
+		return allparams;
 	}
 }
