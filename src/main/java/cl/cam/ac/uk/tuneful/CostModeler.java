@@ -197,13 +197,15 @@ public class CostModeler {
 			String appModelDir = MODEL_INPUT_PATH_BASE + appName;
 			final Map<String, String> envMap = new HashMap<String, String>(System.getenv());
 			String pythonHome = envMap.get("PYTHONHOME");
-			File file = new File(Thread.currentThread().getContextClassLoader().getResource("spearmint-lite")
-					.getPath()+"/spearmint-lite.py");
+			File file = new File(CostModeler.class.getResource("spearmint-lite").getPath()+"/spearmint-lite.py");
+//			File file = new File(Thread.currentThread().getContextClassLoader().getResource("spearmint-lite")
+//					.getPath()+"/spearmint-lite.py");
 
 			String pythonFile = file.getAbsolutePath();
 			System.out.println("file path >> " + pythonFile);
-			appModelDir = Thread.currentThread().getContextClassLoader().getResource("spearmint-lite/braninpy").getPath();
-			String cmd = pythonHome + "/bin/python " + pythonFile + " --method=GPEIOptChooser --method-args=noiseless=1 " + appModelDir;
+			appModelDir = CostModeler.class.getResource("spearmint-lite/braninpy").getPath();
+//			appModelDir = Thread.currentThread().getContextClassLoader().getResource("spearmint-lite/braninpy").getPath();
+			String cmd = "python " + pythonFile + " --method=GPEIOptChooser --method-args=noiseless=1 " + appModelDir;
 			System.out.println("cmd >> " + cmd);
 
 			Process p;
@@ -247,7 +249,8 @@ public class CostModeler {
 		try {
 			final Map<String, String> envMap = new HashMap<String, String>(System.getenv());
 			String pythonHome = envMap.get("PYTHONHOME");
-			String path = Thread.currentThread().getContextClassLoader().getResource("test.py").getPath();
+			String path = CostModeler.class.getResource("test.py").getPath();
+//			String path = Thread.currentThread().getContextClassLoader().getResource("test.py").getPath();
 			System.out.println(">>> path >>>" + path);
 			File file = new File(path);
 //			File file = new File (new CostModeler().getClass().getClassLoader()
