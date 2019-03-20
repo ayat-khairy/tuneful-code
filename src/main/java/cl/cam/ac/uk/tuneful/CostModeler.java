@@ -255,11 +255,13 @@ public class CostModeler {
 		try {
 			final Map<String, String> envMap = new HashMap<String, String>(System.getenv());
 			String pythonHome = envMap.get("PYTHONHOME");
-			String path;
+		
 
-			path = CostModeler.class.getResource("/test.py").toURI().getPath();
-//			String path = Thread.currentThread().getContextClassLoader().getResource("test.py").getPath();
+			String path = CostModeler.class.getResource("/test.py").getPath();
 			System.out.println(">>> path >>>" + path);
+			String absPath = new File (path).getAbsolutePath();
+//			String path = Thread.currentThread().getContextClassLoader().getResource("test.py").getPath();
+			System.out.println(">>> abs path >>>" + absPath);
 			File file = new File(path);
 //			File file = new File (new CostModeler().getClass().getClassLoader()
 //					.getResource("test.py").toURI()
