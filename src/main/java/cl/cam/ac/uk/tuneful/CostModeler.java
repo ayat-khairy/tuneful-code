@@ -39,10 +39,10 @@ public class CostModeler {
 		// write each param name, type, min, max in the app dir
 		String filePath = MODEL_INPUT_PATH_BASE + appName + "\\config.json";
 		List<String> confParams = TunefulFactory.getSignificanceAnalyzer().getSignificantParams(appName);
-		//TODO: remove after testing
+		// TODO: remove after testing
 		confParams = new ArrayList<String>();
 		confParams.add("spark.executor.memory");
-		confParams.add("spark.executor.cores");	
+		confParams.add("spark.executor.cores");
 		////////////////////////////////
 		for (int i = 0; i < confParams.size(); i++) {
 			ConfParam currentParam = TunefulFactory.getSignificanceAnalyzer().getAllParams().get(confParams.get(i));
@@ -197,20 +197,23 @@ public class CostModeler {
 			String appModelDir = MODEL_INPUT_PATH_BASE + appName;
 			final Map<String, String> envMap = new HashMap<String, String>(System.getenv());
 			String pythonHome = envMap.get("PYTHONHOME");
-			File file = new File(CostModeler.class.getResource("/spearmint-lite").getPath()+"/spearmint-lite.py");
+			File file;
+
+			file = new File(CostModeler.class.getResource("/spearmint-lite").toURI().getPath() + "/spearmint-lite.py");
 //			File file = new File(Thread.currentThread().getContextClassLoader().getResource("spearmint-lite")
 //					.getPath()+"/spearmint-lite.py");
 
 			String pythonFile = file.getAbsolutePath();
 			System.out.println("file path >> " + pythonFile);
-			appModelDir = CostModeler.class.getResource("/spearmint-lite/braninpy").getPath();
+			appModelDir = CostModeler.class.getResource("/spearmint-lite/braninpy").toURI().getPath();
 //			appModelDir = Thread.currentThread().getContextClassLoader().getResource("spearmint-lite/braninpy").getPath();
 			String cmd = "python " + pythonFile + " --method=GPEIOptChooser --method-args=noiseless=1 " + appModelDir;
 			System.out.println("cmd >> " + cmd);
 
 			Process p;
-			String [] env = {"PYTHONHOME="+pythonHome ,"PYTHONPATH="+pythonHome, "PATH=/usr/local/opt/python/libexec/bin:$PATH"};
-			p = Runtime.getRuntime().exec(cmd , env);
+			String[] env = { "PYTHONHOME=" + pythonHome, "PYTHONPATH=" + pythonHome,
+					"PATH=/usr/local/opt/python/libexec/bin:$PATH" };
+			p = Runtime.getRuntime().exec(cmd, env);
 			p.waitFor();
 			BufferedReader bri = new BufferedReader(new InputStreamReader(p.getInputStream()));
 			BufferedReader bre = new BufferedReader(new InputStreamReader(p.getErrorStream()));
@@ -227,6 +230,9 @@ public class CostModeler {
 			System.out.println("Done.");
 
 			p.destroy();
+		} catch (URISyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -249,7 +255,9 @@ public class CostModeler {
 		try {
 			final Map<String, String> envMap = new HashMap<String, String>(System.getenv());
 			String pythonHome = envMap.get("PYTHONHOME");
-			String path = CostModeler.class.getResource("/test.py").getPath();
+			String path;
+
+			path = CostModeler.class.getResource("/test.py").toURI().getPath();
 //			String path = Thread.currentThread().getContextClassLoader().getResource("test.py").getPath();
 			System.out.println(">>> path >>>" + path);
 			File file = new File(path);
@@ -263,8 +271,8 @@ public class CostModeler {
 
 			Process p;
 			String command = "python " + path;
-			System.out.println(">>>cmd >>> " +command);
-			String [] env = {"PYTHONHOME="+pythonHome ,"PYTHONPATH="+pythonHome};
+			System.out.println(">>>cmd >>> " + command);
+			String[] env = { "PYTHONHOME=" + pythonHome, "PYTHONPATH=" + pythonHome };
 			p = Runtime.getRuntime().exec(command, env);
 			p.waitFor();
 			BufferedReader bri = new BufferedReader(new InputStreamReader(p.getInputStream()));
@@ -282,6 +290,9 @@ public class CostModeler {
 			System.out.println("Done.");
 
 			p.destroy();
+		} catch (URISyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
