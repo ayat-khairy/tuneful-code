@@ -2,11 +2,15 @@ package cl.cam.ac.uk.tuneful;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -27,16 +31,23 @@ public class SignificanceAnalyzer {
 	int n_samples_per_SA;
 	Hashtable<String, Integer> current_SA_round;
 	float fraction;
+	private String sigParamsPath = "~/tuneful/sigparams.ser";
+	private String n_executionsPath="~/tuneful/n_executions.ser";
+	private String currentSARoundPath="~/tuneful/currentSARound.ser";
 
 	public SignificanceAnalyzer() {
 		n_SA_rounds = 2; // TODO: make configurable
 		n_samples_per_SA = 3; // samples per SA round
 		current_SA_round = new Hashtable<String, Integer>();
 		n_executions = new Hashtable<String, Integer>();// number of WL executions
-		allParamsNames = TunefulFactory.getTunableParams();
-		allparams = TunefulFactory.getTunableParamsRange();
 		sigParamsNames = new Hashtable<String, List<String>>();
+		allParamsNames = TunefulFactory.getTunableParams();
+		loadTable(sigParamsPath, sigParamsNames );
+		loadTable(currentSARoundPath, current_SA_round );
+		loadTable(n_executionsPath , n_executions);
+		allparams = TunefulFactory.getTunableParamsRange();
 		fraction = 0.45f; // TODO: make configurable
+		
 	}
 
 	public Hashtable<String, String> suggestNextConf(String appName) {
@@ -63,6 +74,10 @@ public class SignificanceAnalyzer {
 			n_executions.put(appName, 0); // reset the number of execution for the new SA round
 		}
 		n_executions.put(appName, n_executions.get(appName) + 1); // increment number of samples
+		writeTable(n_executions, n_executionsPath);
+		writeTable(current_SA_round, currentSARoundPath);
+		writeTable(sigParamsNames, sigParamsPath);
+		
 		return TunefulFactory.getConfigurationSampler().sample(appName, sigParamsNames.get(appName));
 
 	}
@@ -113,6 +128,10 @@ public class SignificanceAnalyzer {
 
 		List<String> readSigParams = readSigParams(sigParamsFileName);
 		System.out.println(">> SA_round >>" + current_SA_round.get(appName) + ">> Sig Params" + readSigParams);
+		writeTable(sigParamsNames, sigParamsPath);
+		writeTable(current_SA_round, currentSARoundPath);
+		
+		
 		return readSigParams;
 
 	}
@@ -180,13 +199,34 @@ public class SignificanceAnalyzer {
 			for (int i = 0; i < sigParams.size(); i++) {
 				appExec += sparkConf.get(sigParams.get(i)) + ",";
 			}
-			bufferedWriter.write(appExec+"\n");
+			bufferedWriter.write(appExec + "\n");
 			bufferedWriter.flush();
 			bufferedWriter.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 
+	}
+
+	public void loadTable(String path, Hashtable table) {
+		try {
+			FileInputStream fileIn = new FileInputStream(path);
+			ObjectInputStream in = new ObjectInputStream(fileIn);
+			table = (Hashtable) in.readObject();
+//		      System.out.println(h.toString( )); 
+		} catch (Exception e) {
+			System.out.println(e);
+		}
+	}
+
+	public void writeTable(Hashtable table, String path) {
+		try {
+			FileOutputStream fileOut = new FileOutputStream(path);
+			ObjectOutputStream out = new ObjectOutputStream(fileOut);
+			out.writeObject(table);
+		} catch (Exception e) {
+			System.out.println(e);
+		}
 	}
 
 }

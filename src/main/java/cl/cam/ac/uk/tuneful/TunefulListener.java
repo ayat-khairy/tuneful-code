@@ -22,7 +22,7 @@ public class TunefulListener extends SparkListener {
 
 	@Override
 	public void onApplicationStart(SparkListenerApplicationStart applicationStart) {
-
+		System.out.println(">>>>>>> tuneful Listener >>>> on application start ...");
 		appName = applicationStart.appName();
 		appStartTime = applicationStart.time();
 
@@ -46,6 +46,7 @@ public class TunefulListener extends SparkListener {
 
 	@Override
 	public void onApplicationEnd(SparkListenerApplicationEnd applicationEnd) {
+		System.out.println(">>>>>>> tuneful Listener >>>> on application End ...");
 		long execTime = appStartTime - applicationEnd.time();
 		if (!TunefulFactory.getSignificanceAnalyzer().isSigParamDetected(appName)) {
 			// write conf anf execTime to SA input file

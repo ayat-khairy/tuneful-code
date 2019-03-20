@@ -7,7 +7,9 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
@@ -24,15 +26,10 @@ public class CostModeler {
 	private String MODEL_INPUT_PATH_BASE;
 
 	public CostModeler() {
-		try {
-			MODEL_INPUT_PATH_BASE = this.getClass().getClassLoader().getResource("\\home\\tuneful\\spearmint-lite\\")
-					.toURI().getPath();
-			File directory = new File(MODEL_INPUT_PATH_BASE);
-			if (!directory.exists()) {
-				directory.mkdirs();
-			}
-		} catch (URISyntaxException e) {
-			e.printStackTrace();
+		MODEL_INPUT_PATH_BASE = "\\home\\tuneful\\spearmint-lite\\";
+		File directory = new File(MODEL_INPUT_PATH_BASE);
+		if (!directory.exists()) {
+			directory.mkdirs();
 		}
 
 	}
@@ -42,6 +39,11 @@ public class CostModeler {
 		// write each param name, type, min, max in the app dir
 		String filePath = MODEL_INPUT_PATH_BASE + appName + "\\config.json";
 		List<String> confParams = TunefulFactory.getSignificanceAnalyzer().getSignificantParams(appName);
+		//TODO: remove after testing
+		confParams = new ArrayList<String>();
+		confParams.add("spark.executor.memory");
+		confParams.add("spark.executor.cores");	
+		////////////////////////////////
 		for (int i = 0; i < confParams.size(); i++) {
 			ConfParam currentParam = TunefulFactory.getSignificanceAnalyzer().getAllParams().get(confParams.get(i));
 			writeParamToFile(currentParam, filePath);
@@ -79,7 +81,7 @@ public class CostModeler {
 	}
 
 	public void writeToModelInput(SparkConf sparkConf, double cost, String appName) {
-		Hashtable conf = getTunableParams(sparkConf , appName);
+		Hashtable conf = getTunableParams(sparkConf, appName);
 		FileWriter fileWriter;
 		try {
 			String appModelInputPath = MODEL_INPUT_PATH_BASE + appName + "\\result.dat";
@@ -160,6 +162,7 @@ public class CostModeler {
 		}
 		return conf;
 	}
+
 // get the tunable conf from SparkConf
 	private Hashtable<String, String> getTunableParams(SparkConf sparkconf, String appName) {
 		Hashtable<String, String> tunableParams = new Hashtable<String, String>();
@@ -188,85 +191,101 @@ public class CostModeler {
 	private void runSpearmint(String appName) {
 
 		try {
+
 			if (!confFileExists(appName))
 				writeParamsJsonFile(appName);
 			String appModelDir = MODEL_INPUT_PATH_BASE + appName;
 			final Map<String, String> envMap = new HashMap<String, String>(System.getenv());
-			String pythonHome = envMap.get("PYTHON_HOME");
-			File file = new File(this.getClass().getClassLoader().getResource("spearmint-lite\\spearmint-lite.py")
-					.toURI().getPath());
+			String pythonHome = envMap.get("PYTHONHOME");
+			File file = new File(Thread.currentThread().getContextClassLoader().getResource("spearmint-lite")
+					.getPath()+"/spearmint-lite.py");
 
 			String pythonFile = file.getAbsolutePath();
 			System.out.println("file path >> " + pythonFile);
+			appModelDir = Thread.currentThread().getContextClassLoader().getResource("spearmint-lite/braninpy").getPath();
+			String cmd = pythonHome + "/bin/python " + pythonFile + " --method=GPEIOptChooser --method-args=noiseless=1 " + appModelDir;
+			System.out.println("cmd >> " + cmd);
 
-			ProcessBuilder pb = new ProcessBuilder(pythonHome + "\\python ", pythonFile, "--driver=local",
-					"--method=GPEIOptChooser", "-method-args=noiseless=1", appModelDir);
-			pb.redirectError();
-			Process p = pb.start();
-
-			InputStream is = null;
-			try {
-				is = p.getInputStream();
-				int in = -1;
-				while ((in = is.read()) != -1) {
-					System.out.print((char) in);
-				}
-			} finally {
-				try {
-					is.close();
-				} catch (Exception e) {
-				}
+			Process p;
+			String [] env = {"PYTHONHOME="+pythonHome ,"PYTHONPATH="+pythonHome, "PATH=/usr/local/opt/python/libexec/bin:$PATH"};
+			p = Runtime.getRuntime().exec(cmd , env);
+			p.waitFor();
+			BufferedReader bri = new BufferedReader(new InputStreamReader(p.getInputStream()));
+			BufferedReader bre = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+			String line;
+			while ((line = bri.readLine()) != null) {
+				System.out.println(line);
 			}
+			bri.close();
+			while ((line = bre.readLine()) != null) {
+				System.out.println(line);
+			}
+			bre.close();
+			p.waitFor();
+			System.out.println("Done.");
 
-			System.out.println("command executed ! ");
-		} catch (Exception e) {
+			p.destroy();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+
 	}
 
 	private boolean confFileExists(String appName) {
-		File filePath = new File (MODEL_INPUT_PATH_BASE + appName + "\\config.json"); 
-		return (filePath.exists() && !filePath.isDirectory()); 
-		
+		File filePath = new File(MODEL_INPUT_PATH_BASE + appName + "\\config.json");
+		return (filePath.exists() && !filePath.isDirectory());
+
 	}
 
 	public static void main(String[] args) {
-		try {
+//		new CostModeler().runSpearmint("test");
 
+		try {
 			final Map<String, String> envMap = new HashMap<String, String>(System.getenv());
-			String pythonHome = envMap.get("PYTHON_HOME");
-			File file = new File(new CostModeler().getClass().getClassLoader()
-					.getResource("spearmint-lite\\spearmint-lite.py").toURI().getPath());
+			String pythonHome = envMap.get("PYTHONHOME");
+			String path = Thread.currentThread().getContextClassLoader().getResource("test.py").getPath();
+			System.out.println(">>> path >>>" + path);
+			File file = new File(path);
 //			File file = new File (new CostModeler().getClass().getClassLoader()
 //					.getResource("test.py").toURI()
 //					.getPath());
 
 			String pythonFile = file.getAbsolutePath();
-			System.out.println("file path >> " + pythonFile);
+			System.out.println("file path >> " + path);
 //			Runtime.getRuntime().exec(new String[] {pythonHome+"\\python " , pythonFile } );
 
-			ProcessBuilder pb = new ProcessBuilder(pythonHome + "\\python ", pythonFile);
-			pb.redirectError();
-			Process p = pb.start();
-
-			InputStream is = null;
-			try {
-				is = p.getInputStream();
-				int in = -1;
-				while ((in = is.read()) != -1) {
-					System.out.print((char) in);
-				}
-			} finally {
-				try {
-					is.close();
-				} catch (Exception e) {
-				}
+			Process p;
+			String command = pythonHome + "/bin/python " + path;
+			System.out.println(">>>cmd >>> " +command);
+			String [] env = {"PYTHONHOME="+pythonHome ,"PYTHONPATH="+pythonHome};
+			p = Runtime.getRuntime().exec(command, env);
+			p.waitFor();
+			BufferedReader bri = new BufferedReader(new InputStreamReader(p.getInputStream()));
+			BufferedReader bre = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+			String line;
+			while ((line = bri.readLine()) != null) {
+				System.out.println(line);
 			}
+			bri.close();
+			while ((line = bre.readLine()) != null) {
+				System.out.println(line);
+			}
+			bre.close();
+			p.waitFor();
+			System.out.println("Done.");
 
-			System.out.println("command executed ! ");
-		} catch (Exception e) {
+			p.destroy();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-	}
 
+	}
 }
