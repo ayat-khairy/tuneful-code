@@ -260,7 +260,7 @@ public class CostModeler {
 			String path = CostModeler.class.getResource("/test.py").getPath();
 			System.out.println(">>> path >>>" + path);
 			String absPath = new File (path).getAbsolutePath();
-//			String path = Thread.currentThread().getContextClassLoader().getResource("test.py").getPath();
+			absPath = Thread.currentThread().getContextClassLoader().getResource("test.py").getPath();
 			System.out.println(">>> abs path >>>" + absPath);
 			File file = new File(path);
 //			File file = new File (new CostModeler().getClass().getClassLoader()
@@ -272,9 +272,12 @@ public class CostModeler {
 //			Runtime.getRuntime().exec(new String[] {pythonHome+"\\python " , pythonFile } );
 
 			Process p;
-			String command = "python " + path;
+			String command = "python test.py" ;
+//+ path;
+                        String pathEnv =envMap.get("PYTHONHOME");
+
 			System.out.println(">>>cmd >>> " + command);
-			String[] env = { "PYTHONHOME=" + pythonHome, "PYTHONPATH=" + pythonHome };
+			String[] env = { "PYTHONHOME=" + pythonHome, "PYTHONPATH=" + pythonHome , "PATH="+pathEnv};
 			p = Runtime.getRuntime().exec(command, env);
 			p.waitFor();
 			BufferedReader bri = new BufferedReader(new InputStreamReader(p.getInputStream()));
