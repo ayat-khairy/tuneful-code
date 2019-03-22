@@ -10,4 +10,5 @@ buildNumber.properties
 .mvn/wrapper/maven-wrapper.jar
 tuneful.jar
 .settings/*
+.settings/*.prefs
 .classpath

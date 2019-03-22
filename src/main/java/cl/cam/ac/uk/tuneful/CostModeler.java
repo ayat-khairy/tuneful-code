@@ -6,7 +6,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -24,12 +23,62 @@ public class CostModeler {
 
 	private String modelPath = null;
 	private String MODEL_INPUT_PATH_BASE;
+	private String TUNEFUL_HOME;
+	private String SPEARMINT_FOLDER;
 
 	public CostModeler() {
-		MODEL_INPUT_PATH_BASE = "\\home\\tuneful\\spearmint-lite\\";
-		File directory = new File(MODEL_INPUT_PATH_BASE);
+		TUNEFUL_HOME = "/home/ayat/ayat/tuneful"; // TODO: make configurable
+		MODEL_INPUT_PATH_BASE = TUNEFUL_HOME + "/spearmint-lite/";
+		SPEARMINT_FOLDER = "spearmint-lite";
+		File directory = new File(TUNEFUL_HOME);
 		if (!directory.exists()) {
 			directory.mkdirs();
+		}
+		directory = new File(MODEL_INPUT_PATH_BASE);
+		if (!directory.exists()) {
+			directory.mkdirs();
+		}
+		copySpearmintFolderToTunefulHome();
+	}
+
+	public void copySpearmintFolderToTunefulHome() {
+
+		try {
+
+			String jarPath = new File(CostModeler.class.getProtectionDomain().getCodeSource().getLocation().toURI())
+					.getPath();
+			System.out.println(">>> Jar path >>>" + jarPath);
+
+			Process p;
+
+			String command = "jar xf " + jarPath + " " + SPEARMINT_FOLDER;
+			System.out.println(">>>cmd >>> " + command);
+			p = Runtime.getRuntime().exec(command, new String[] {}, new File(TUNEFUL_HOME));
+			p.waitFor();
+			BufferedReader bri = new BufferedReader(new InputStreamReader(p.getInputStream()));
+			BufferedReader bre = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+			String line;
+			while ((line = bri.readLine()) != null) {
+				System.out.println(line);
+			}
+			bri.close();
+			while ((line = bre.readLine()) != null) {
+				System.out.println(line);
+			}
+			bre.close();
+			p.waitFor();
+			System.out.println("Done.");
+
+			p.destroy();
+		} catch (URISyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 
 	}
@@ -250,63 +299,68 @@ public class CostModeler {
 	}
 
 	public static void main(String[] args) {
-//		new CostModeler().runSpearmint("test");
-
-		try {
-			final Map<String, String> envMap = new HashMap<String, String>(System.getenv());
-			String pythonHome = envMap.get("PYTHONHOME");
-		
-
-			String path = CostModeler.class.getResource("/test.py").getPath();
-			System.out.println(">>> path >>>" + path);
-			String absPath = new File (path).getAbsolutePath();
-			absPath = Thread.currentThread().getContextClassLoader().getResource("test.py").getPath();
-			System.out.println(">>> abs path >>>" + absPath);
-			File file = new File(path);
-//			File file = new File (new CostModeler().getClass().getClassLoader()
-//					.getResource("test.py").toURI()
-//					.getPath());
-
-			String pythonFile = file.getAbsolutePath();
-			System.out.println("file path >> " + path);
-//			Runtime.getRuntime().exec(new String[] {pythonHome+"\\python " , pythonFile } );
-
-			Process p;
-			String command = "python test.py" ;
-//+ path;
-                        String pathEnv =envMap.get("PYTHONHOME");
-
-			System.out.println(">>>cmd >>> " + command);
-			String[] env = { "PYTHONHOME=" + pythonHome, "PYTHONPATH=" + pythonHome , "PATH="+pathEnv};
-			p = Runtime.getRuntime().exec(command, env);
-			p.waitFor();
-			BufferedReader bri = new BufferedReader(new InputStreamReader(p.getInputStream()));
-			BufferedReader bre = new BufferedReader(new InputStreamReader(p.getErrorStream()));
-			String line;
-			while ((line = bri.readLine()) != null) {
-				System.out.println(line);
-			}
-			bri.close();
-			while ((line = bre.readLine()) != null) {
-				System.out.println(line);
-			}
-			bre.close();
-			p.waitFor();
-			System.out.println("Done.");
-
-			p.destroy();
-		}
-//		catch (URISyntaxException e) {
+		new CostModeler().copySpearmintFolderToTunefulHome();
+//
+	
+//		try {
+//			final Map<String, String> envMap = new HashMap<String, String>(System.getenv());
+//			String pythonHome = envMap.get("PYTHONHOME");
+//
+//			String path = new File(CostModeler.class.getProtectionDomain().getCodeSource().getLocation().toURI())
+//					.getPath();
+////					CostModeler.class.getResource("/").getPath();
+//			System.out.println(">>> path >>>" + path);
+//			String absPath = new File(path).getAbsolutePath();
+////			absPath = Thread.currentThread().getContextClassLoader().getResource(".").getPath();
+////			System.out.println(">>> abs path >>>" + absPath);
+//			File file = new File(path);
+////			File file = new File (new CostModeler().getClass().getClassLoader()
+////					.getResource("test.py").toURI()
+////					.getPath());
+//
+//			String pythonFile = file.getAbsolutePath();
+//			path = path.substring(path.indexOf(":") + 1);
+//			System.out.println("file path >> " + path);
+////			Runtime.getRuntime().exec(new String[] {pythonHome+"\\python " , pythonFile } );
+//
+//			Process p;
+//
+//			String command = "python test.py";
+////					"jar xf " + path + " test.py; python test.py";
+////			"python "+ path;
+////+ path;
+//			String pathEnv = envMap.get("PATH");
+//			System.out.println(">>>PATH >>> " + pathEnv);
+//			System.out.println(">>>cmd >>> " + command);
+//			String[] env = { "PYTHONHOME=" + pythonHome, "PYTHONPATH=" + pythonHome, "PATH=" + pathEnv,
+//					"JAVA_HOME=" + "/usr/lib/jvm/java-8-oracle" };
+//			p = Runtime.getRuntime().exec(command, env, new File("/home/ayat/ayat"));
+//			p.waitFor();
+//			BufferedReader bri = new BufferedReader(new InputStreamReader(p.getInputStream()));
+//			BufferedReader bre = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+//			String line;
+//			while ((line = bri.readLine()) != null) {
+//				System.out.println(line);
+//			}
+//			bri.close();
+//			while ((line = bre.readLine()) != null) {
+//				System.out.println(line);
+//			}
+//			bre.close();
+//			p.waitFor();
+//			System.out.println("Done.");
+//
+//			p.destroy();
+//		} catch (URISyntaxException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		} catch (InterruptedException e) {
 //			// TODO Auto-generated catch block
 //			e.printStackTrace();
 //		}
-		catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 
 	}
 }
