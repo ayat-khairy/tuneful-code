@@ -58,15 +58,15 @@ public class ConfParam {
 	}
 
 	public String toJsonString() {
-		String str = "{" + name +"={" + "name='" + name + '\'';
+		String str = "\"" + name +"\":{" + "\"name\":\"" + name + "\",\n";
 		if (type.equals("bolean") || type.equals("enum")) {
-			str += ", type=" + "enum" + ", options=" + values;
+			str += "\"type\":\"enum\"" + ",\n\"options\":" + values;
 		} else if (type.equals("int")) {
-			str += ", type=" + type + ", min=" + (int) range[0] + ", max=" + (int) range[1];
+			str += "\n\"type\":\"" + type + "\",\n \"min\":" + (int) range[0] + ",\n \"max\":" + (int) range[1];
 		} else {
-			str += ", type=" + type + ", min=" + range[0] + ", max=" + range[1];
+			str += "\n \"type\":\"" + type + "\",\n \"min\"=" + range[0] + ",\n \"max\":" + range[1];
 		}
-		str += "}}";
+		str += "\n\"size\":1\n},";
 		return str;
 	}
 

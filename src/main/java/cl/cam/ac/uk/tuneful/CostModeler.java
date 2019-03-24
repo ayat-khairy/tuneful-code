@@ -28,48 +28,49 @@ public class CostModeler {
 
 	public CostModeler() {
 		TUNEFUL_HOME = "/home/ayat/ayat/tuneful"; // TODO: make configurable
-		MODEL_INPUT_PATH_BASE = TUNEFUL_HOME + "/spearmint-lite/";
 		SPEARMINT_FOLDER = "spearmint-lite";
+		MODEL_INPUT_PATH_BASE = TUNEFUL_HOME + "/" + SPEARMINT_FOLDER + "/";
 		File directory = new File(TUNEFUL_HOME);
 		if (!directory.exists()) {
 			directory.mkdirs();
 		}
-		directory = new File(MODEL_INPUT_PATH_BASE);
-		if (!directory.exists()) {
-			directory.mkdirs();
-		}
+	
 		copySpearmintFolderToTunefulHome();
 	}
 
 	public void copySpearmintFolderToTunefulHome() {
 
 		try {
+// check if the folder does not already copied 
+			File directory = new File(MODEL_INPUT_PATH_BASE);
+			if (!directory.exists()) {
 
-			String jarPath = new File(CostModeler.class.getProtectionDomain().getCodeSource().getLocation().toURI())
-					.getPath();
-			System.out.println(">>> Jar path >>>" + jarPath);
+				String jarPath = new File(CostModeler.class.getProtectionDomain().getCodeSource().getLocation().toURI())
+						.getPath();
+				System.out.println(">>> Jar path >>>" + jarPath);
 
-			Process p;
+				Process p;
 
-			String command = "jar xf " + jarPath + " " + SPEARMINT_FOLDER;
-			System.out.println(">>>cmd >>> " + command);
-			p = Runtime.getRuntime().exec(command, new String[] {}, new File(TUNEFUL_HOME));
-			p.waitFor();
-			BufferedReader bri = new BufferedReader(new InputStreamReader(p.getInputStream()));
-			BufferedReader bre = new BufferedReader(new InputStreamReader(p.getErrorStream()));
-			String line;
-			while ((line = bri.readLine()) != null) {
-				System.out.println(line);
+				String command = "jar xf " + jarPath + " " + SPEARMINT_FOLDER;
+				System.out.println(">>>cmd >>> " + command);
+				p = Runtime.getRuntime().exec(command, new String[] {}, new File(TUNEFUL_HOME));
+				p.waitFor();
+				BufferedReader bri = new BufferedReader(new InputStreamReader(p.getInputStream()));
+				BufferedReader bre = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+				String line;
+				while ((line = bri.readLine()) != null) {
+					System.out.println(line);
+				}
+				bri.close();
+				while ((line = bre.readLine()) != null) {
+					System.out.println(line);
+				}
+				bre.close();
+				p.waitFor();
+				System.out.println("Done.");
+
+				p.destroy();
 			}
-			bri.close();
-			while ((line = bre.readLine()) != null) {
-				System.out.println(line);
-			}
-			bre.close();
-			p.waitFor();
-			System.out.println("Done.");
-
-			p.destroy();
 		} catch (URISyntaxException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -85,28 +86,37 @@ public class CostModeler {
 
 	// write the config Json file for Spearmint to start the GP optimisation
 	private void writeParamsJsonFile(String appName) {
+		File directory = new File(MODEL_INPUT_PATH_BASE + "/" + appName);
+		if (!directory.exists()) {
+			directory.mkdirs();
+		}
 		// write each param name, type, min, max in the app dir
-		String filePath = MODEL_INPUT_PATH_BASE + appName + "\\config.json";
+		String filePath = MODEL_INPUT_PATH_BASE + "/" + appName + "/config.json";
 		List<String> confParams = TunefulFactory.getSignificanceAnalyzer().getSignificantParams(appName);
 		// TODO: remove after testing
 		confParams = new ArrayList<String>();
 		confParams.add("spark.executor.memory");
 		confParams.add("spark.executor.cores");
 		////////////////////////////////
-		for (int i = 0; i < confParams.size(); i++) {
-			ConfParam currentParam = TunefulFactory.getSignificanceAnalyzer().getAllParams().get(confParams.get(i));
-			writeParamToFile(currentParam, filePath);
+//		for (int i = 0; i < confParams.size(); i++) {
+//			ConfParam currentParam = TunefulFactory.getSignificanceAnalyzer().getAllParams().get(confParams.get(i));
+		writeParamToFile(confParams, filePath);
 
-		}
+//		}
 	}
 
-	private void writeParamToFile(ConfParam currentParam, String filePath) {
-		FileWriter fileWriter;
+	private void writeParamToFile(List<String> confParams, String filePath) {
 		try {
+			
 			String appModelInputPath = filePath;
-			fileWriter = new FileWriter(appModelInputPath);
+			FileWriter fileWriter = new FileWriter(appModelInputPath, true);
 			BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
-			bufferedWriter.write(currentParam.toJsonString());
+			bufferedWriter.write("{\n");
+			for (int i = 0; i < confParams.size(); i++) {
+				ConfParam currentParam = TunefulFactory.getSignificanceAnalyzer().getAllParams().get(confParams.get(i));
+				bufferedWriter.write(currentParam.toJsonString());
+			}
+			bufferedWriter.write("}\n");
 			bufferedWriter.flush();
 			bufferedWriter.close();
 		} catch (IOException e) {
@@ -133,7 +143,7 @@ public class CostModeler {
 		Hashtable conf = getTunableParams(sparkConf, appName);
 		FileWriter fileWriter;
 		try {
-			String appModelInputPath = MODEL_INPUT_PATH_BASE + appName + "\\result.dat";
+			String appModelInputPath = MODEL_INPUT_PATH_BASE + appName + "/result.dat";
 			fileWriter = new FileWriter(appModelInputPath);
 			BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
 			List<String> confParams = TunefulFactory.getSignificanceAnalyzer().getSignificantParams(appName);
@@ -159,7 +169,7 @@ public class CostModeler {
 	private void writePendingConf(Hashtable conf, String appName) {
 		FileWriter fileWriter;
 		try {
-			String appModelInputPath = MODEL_INPUT_PATH_BASE + appName + "\\result.dat";
+			String appModelInputPath = MODEL_INPUT_PATH_BASE + appName + "/result.dat";
 			fileWriter = new FileWriter(appModelInputPath);
 			BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
 			List<String> confParams = TunefulFactory.getSignificanceAnalyzer().getSignificantParams(appName);
@@ -177,7 +187,7 @@ public class CostModeler {
 	private Hashtable<String, String> readPendingConf(String appName) {
 		Hashtable<String, String> conf = new Hashtable<String, String>();
 		try {
-			String appModelDir = MODEL_INPUT_PATH_BASE + appName + "\\result.dat";
+			String appModelDir = MODEL_INPUT_PATH_BASE + appName + "/result.dat";
 			FileReader fileReader = new FileReader(appModelDir);
 			BufferedReader bufferedReader = new BufferedReader(fileReader);
 			String line;
@@ -246,22 +256,24 @@ public class CostModeler {
 			String appModelDir = MODEL_INPUT_PATH_BASE + appName;
 			final Map<String, String> envMap = new HashMap<String, String>(System.getenv());
 			String pythonHome = envMap.get("PYTHONHOME");
+			String pathenv = envMap.get("PATH");
+			System.out.println("pathEnv >>>> " + pathenv);
 			File file;
 
-			file = new File(CostModeler.class.getResource("/spearmint-lite").toURI().getPath() + "/spearmint-lite.py");
+			file = new File(MODEL_INPUT_PATH_BASE + "/spearmint-lite.py");
 //			File file = new File(Thread.currentThread().getContextClassLoader().getResource("spearmint-lite")
 //					.getPath()+"/spearmint-lite.py");
 
 			String pythonFile = file.getAbsolutePath();
 			System.out.println("file path >> " + pythonFile);
-			appModelDir = CostModeler.class.getResource("/spearmint-lite/braninpy").toURI().getPath();
+			// appModelDir =
+			// CostModeler.class.getResource("/spearmint-lite/braninpy").toURI().getPath();
 //			appModelDir = Thread.currentThread().getContextClassLoader().getResource("spearmint-lite/braninpy").getPath();
 			String cmd = "python " + pythonFile + " --method=GPEIOptChooser --method-args=noiseless=1 " + appModelDir;
 			System.out.println("cmd >> " + cmd);
 
 			Process p;
-			String[] env = { "PYTHONHOME=" + pythonHome, "PYTHONPATH=" + pythonHome,
-					"PATH=/usr/local/opt/python/libexec/bin:$PATH" };
+			String[] env = { "PYTHONHOME=" + pythonHome, "PYTHONPATH=" + pythonHome , "PATH="+pathenv };
 			p = Runtime.getRuntime().exec(cmd, env);
 			p.waitFor();
 			BufferedReader bri = new BufferedReader(new InputStreamReader(p.getInputStream()));
@@ -279,9 +291,6 @@ public class CostModeler {
 			System.out.println("Done.");
 
 			p.destroy();
-		} catch (URISyntaxException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -293,15 +302,16 @@ public class CostModeler {
 	}
 
 	private boolean confFileExists(String appName) {
-		File filePath = new File(MODEL_INPUT_PATH_BASE + appName + "\\config.json");
+		File filePath = new File(MODEL_INPUT_PATH_BASE + appName + "/config.json");
 		return (filePath.exists() && !filePath.isDirectory());
 
 	}
 
 	public static void main(String[] args) {
-		new CostModeler().copySpearmintFolderToTunefulHome();
+		// new CostModeler().copySpearmintFolderToTunefulHome();
+		new CostModeler().runSpearmint("test");
 //
-	
+
 //		try {
 //			final Map<String, String> envMap = new HashMap<String, String>(System.getenv());
 //			String pythonHome = envMap.get("PYTHONHOME");
