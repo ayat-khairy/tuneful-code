@@ -27,9 +27,9 @@ public class CostModeler {
 	private String SPEARMINT_FOLDER;
 
 	public CostModeler() {
-		TUNEFUL_HOME = "/home/ayat/ayat/tuneful"; // TODO: make configurable
+		TUNEFUL_HOME = TunefulFactory.getTunefulHome(); // TODO: make configurable
 		SPEARMINT_FOLDER = "spearmint-lite";
-		MODEL_INPUT_PATH_BASE = TUNEFUL_HOME + "/" + SPEARMINT_FOLDER + "/";
+		MODEL_INPUT_PATH_BASE = TUNEFUL_HOME+ "/" + SPEARMINT_FOLDER + "/";
 		File directory = new File(TUNEFUL_HOME);
 		if (!directory.exists()) {
 			directory.mkdirs();
@@ -143,11 +143,16 @@ public class CostModeler {
 		Hashtable conf = getTunableParams(sparkConf, appName);
 		FileWriter fileWriter;
 		try {
-			String appModelInputPath = MODEL_INPUT_PATH_BASE + appName + "/result.dat";
+			String appModelInputPath = MODEL_INPUT_PATH_BASE + appName + "/results.dat";
 			fileWriter = new FileWriter(appModelInputPath);
 			BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
 			List<String> confParams = TunefulFactory.getSignificanceAnalyzer().getSignificantParams(appName);
-			String line = cost + " 0 " + getConfAsstr(conf, confParams) + " \\n";
+			// TODO: remove after testing
+			confParams = new ArrayList<String>();
+			confParams.add("spark.executor.memory");
+			confParams.add("spark.executor.cores");
+			////////////////////////////////
+			String line = cost + " 0 " + getConfAsstr(conf, confParams) + "\n";
 			bufferedWriter.write(line);
 			bufferedWriter.flush();
 			bufferedWriter.close();
@@ -166,34 +171,39 @@ public class CostModeler {
 		return confAsStr;
 	}
 
-	private void writePendingConf(Hashtable conf, String appName) {
-		FileWriter fileWriter;
-		try {
-			String appModelInputPath = MODEL_INPUT_PATH_BASE + appName + "/result.dat";
-			fileWriter = new FileWriter(appModelInputPath);
-			BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
-			List<String> confParams = TunefulFactory.getSignificanceAnalyzer().getSignificantParams(appName);
-			String line = "P P " + getConfAsstr(conf, confParams) + " \\n";
-			bufferedWriter.write(line);
-			bufferedWriter.flush();
-			bufferedWriter.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+//	private void writePendingConf(Hashtable conf, String appName) {
+//		FileWriter fileWriter;
+//		try {
+//			String appModelInputPath = MODEL_INPUT_PATH_BASE + appName + "/results.dat";
+//			fileWriter = new FileWriter(appModelInputPath);
+//			BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+//			List<String> confParams = TunefulFactory.getSignificanceAnalyzer().getSignificantParams(appName);
+//			String line = "P P " + getConfAsstr(conf, confParams) + " \\n";
+//			bufferedWriter.write(line);
+//			bufferedWriter.flush();
+//			bufferedWriter.close();
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//
+//	}
 
-	}
-
-	private Hashtable<String, String> readPendingConf(String appName) {
+	public  Hashtable<String, String> readPendingConf(String appName) {
 		Hashtable<String, String> conf = new Hashtable<String, String>();
 		try {
-			String appModelDir = MODEL_INPUT_PATH_BASE + appName + "/result.dat";
+			String appModelDir = MODEL_INPUT_PATH_BASE + appName + "/results.dat";
 			FileReader fileReader = new FileReader(appModelDir);
 			BufferedReader bufferedReader = new BufferedReader(fileReader);
 			String line;
 			line = bufferedReader.readLine();
 			String[] splittedLine = line.split(" ");
 			List<String> confParams = TunefulFactory.getSignificanceAnalyzer().getSignificantParams(appName);
+			// TODO: remove after testing
+			confParams = new ArrayList<String>();
+			confParams.add("spark.executor.memory");
+			confParams.add("spark.executor.cores");
+			////////////////////////////////
 			while (line != null) {
 				if (splittedLine.length == confParams.size() + 2) // number of elements per line
 				{
@@ -202,6 +212,7 @@ public class CostModeler {
 						conf = parseLine(line, confParams, appName);
 
 					}
+					line = bufferedReader.readLine();
 				}
 			}
 		} catch (IOException e) {
@@ -216,8 +227,9 @@ public class CostModeler {
 
 		Hashtable<String, String> conf = new Hashtable<String, String>();
 		String[] splittedLine = line.split(" ");
-		for (int i = 2; i < confParams.size(); i++) {
-			conf.put(confParams.get(i - 2), splittedLine[i]);
+		for (int i = 0; i < confParams.size(); i++) {
+			conf.put(confParams.get(i), splittedLine[i+2]);
+			System.out.println(">>> candidate conf >>> " + confParams.get(i)+ " >>>> " +  splittedLine[i+2]);
 		}
 		return conf;
 	}
@@ -226,6 +238,11 @@ public class CostModeler {
 	private Hashtable<String, String> getTunableParams(SparkConf sparkconf, String appName) {
 		Hashtable<String, String> tunableParams = new Hashtable<String, String>();
 		List<String> confParams = TunefulFactory.getSignificanceAnalyzer().getSignificantParams(appName);
+		// TODO: remove after testing
+		confParams = new ArrayList<String>();
+		confParams.add("spark.executor.memory");
+		confParams.add("spark.executor.cores");
+		////////////////////////////////
 		for (int i = 0; i < confParams.size(); i++) {
 			tunableParams.put(confParams.get(i), sparkconf.get(confParams.get(i)));
 		}
@@ -309,7 +326,14 @@ public class CostModeler {
 
 	public static void main(String[] args) {
 		// new CostModeler().copySpearmintFolderToTunefulHome();
-		new CostModeler().runSpearmint("test");
+//		new CostModeler().runSpearmint("test");
+//		new CostModeler().readPendingConf("test");
+		SparkConf conf = new SparkConf();
+		conf.set("spark.executor.memory", 5+"");
+		conf.set("spark.executor.cores", 7+"");
+
+		new CostModeler().writeToModelInput(conf, 10.0, "test");
+		
 //
 
 //		try {

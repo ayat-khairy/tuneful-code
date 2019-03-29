@@ -110,4 +110,9 @@ public class TunefulFactory {
 		return BASE + appName + "_SA_" + integer;
 	}
 
+	public static String getTunefulHome() {
+		// TODO read from env var or use default value
+		return "/home/ayat/ayat/tuneful";
+	}
+
 }

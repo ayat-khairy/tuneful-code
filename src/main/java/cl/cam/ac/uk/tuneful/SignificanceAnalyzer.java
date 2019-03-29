@@ -31,9 +31,10 @@ public class SignificanceAnalyzer {
 	int n_samples_per_SA;
 	Hashtable<String, Integer> current_SA_round;
 	float fraction;
-	private String sigParamsPath = "~/tuneful/sigparams.ser";
-	private String n_executionsPath="~/tuneful/n_executions.ser";
-	private String currentSARoundPath="~/tuneful/currentSARound.ser";
+	
+	private String sigParamsPath  ;
+	private String n_executionsPath;
+	private String currentSARoundPath;
 
 	public SignificanceAnalyzer() {
 		n_SA_rounds = 2; // TODO: make configurable
@@ -42,6 +43,9 @@ public class SignificanceAnalyzer {
 		n_executions = new Hashtable<String, Integer>();// number of WL executions
 		sigParamsNames = new Hashtable<String, List<String>>();
 		allParamsNames = TunefulFactory.getTunableParams();
+		sigParamsPath = TunefulFactory.getTunefulHome() + "/sigparams.ser";
+		n_executionsPath = TunefulFactory.getTunefulHome() + "/n_executions.ser";
+		currentSARoundPath = TunefulFactory.getTunefulHome() + "/currentSARound.ser";
 		loadTable(sigParamsPath, sigParamsNames );
 		loadTable(currentSARoundPath, current_SA_round );
 		loadTable(n_executionsPath , n_executions);
