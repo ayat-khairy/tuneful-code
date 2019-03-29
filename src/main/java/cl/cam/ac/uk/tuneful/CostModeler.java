@@ -290,8 +290,8 @@ public class CostModeler {
 			System.out.println("cmd >> " + cmd);
 
 			Process p;
-			String[] env = { "PYTHONHOME=" + pythonHome, "PYTHONPATH=" + pythonHome , "PATH="+pathenv };
-			p = Runtime.getRuntime().exec(cmd, env);
+//			String[] env = { "PYTHONHOME=" + pythonHome, "PYTHONPATH=" + pythonHome , "PATH="+pathenv };
+			p = Runtime.getRuntime().exec(cmd);
 			p.waitFor();
 			BufferedReader bri = new BufferedReader(new InputStreamReader(p.getInputStream()));
 			BufferedReader bre = new BufferedReader(new InputStreamReader(p.getErrorStream()));
@@ -326,13 +326,13 @@ public class CostModeler {
 
 	public static void main(String[] args) {
 		// new CostModeler().copySpearmintFolderToTunefulHome();
-//		new CostModeler().runSpearmint("test");
+		new CostModeler().runSpearmint("test");
 //		new CostModeler().readPendingConf("test");
-		SparkConf conf = new SparkConf();
-		conf.set("spark.executor.memory", 5+"");
-		conf.set("spark.executor.cores", 7+"");
-
-		new CostModeler().writeToModelInput(conf, 10.0, "test");
+//		SparkConf conf = new SparkConf();
+//		conf.set("spark.executor.memory", 5+"");
+//		conf.set("spark.executor.cores", 7+"");
+//
+//		new CostModeler().writeToModelInput(conf, 10.0, "test");
 		
 //
 
