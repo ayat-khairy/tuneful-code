@@ -94,9 +94,9 @@ public class CostModeler {
 		String filePath = MODEL_INPUT_PATH_BASE + "/" + appName + "/config.json";
 		List<String> confParams = TunefulFactory.getSignificanceAnalyzer().getSignificantParams(appName);
 		// TODO: remove after testing
-		confParams = new ArrayList<String>();
-		confParams.add("spark.executor.memory");
-		confParams.add("spark.executor.cores");
+//		confParams = new ArrayList<String>();
+//		confParams.add("spark.executor.memory");
+//		confParams.add("spark.executor.cores");
 		////////////////////////////////
 //		for (int i = 0; i < confParams.size(); i++) {
 //			ConfParam currentParam = TunefulFactory.getSignificanceAnalyzer().getAllParams().get(confParams.get(i));
@@ -148,9 +148,9 @@ public class CostModeler {
 			BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
 			List<String> confParams = TunefulFactory.getSignificanceAnalyzer().getSignificantParams(appName);
 			// TODO: remove after testing
-			confParams = new ArrayList<String>();
-			confParams.add("spark.executor.memory");
-			confParams.add("spark.executor.cores");
+//			confParams = new ArrayList<String>();
+//			confParams.add("spark.executor.memory");
+//			confParams.add("spark.executor.cores");
 			////////////////////////////////
 			String line = cost + " 0 " + getConfAsstr(conf, confParams) + "\n";
 			bufferedWriter.write(line);
@@ -200,9 +200,9 @@ public class CostModeler {
 			String[] splittedLine = line.split(" ");
 			List<String> confParams = TunefulFactory.getSignificanceAnalyzer().getSignificantParams(appName);
 			// TODO: remove after testing
-			confParams = new ArrayList<String>();
-			confParams.add("spark.executor.memory");
-			confParams.add("spark.executor.cores");
+//			confParams = new ArrayList<String>();
+//			confParams.add("spark.executor.memory");
+//			confParams.add("spark.executor.cores");
 			////////////////////////////////
 			while (line != null) {
 				if (splittedLine.length == confParams.size() + 2) // number of elements per line
@@ -239,9 +239,9 @@ public class CostModeler {
 		Hashtable<String, String> tunableParams = new Hashtable<String, String>();
 		List<String> confParams = TunefulFactory.getSignificanceAnalyzer().getSignificantParams(appName);
 		// TODO: remove after testing
-		confParams = new ArrayList<String>();
-		confParams.add("spark.executor.memory");
-		confParams.add("spark.executor.cores");
+//		confParams = new ArrayList<String>();
+//		confParams.add("spark.executor.memory");
+//		confParams.add("spark.executor.cores");
 		////////////////////////////////
 		for (int i = 0; i < confParams.size(); i++) {
 			tunableParams.put(confParams.get(i), sparkconf.get(confParams.get(i)));

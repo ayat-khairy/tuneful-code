@@ -6,21 +6,29 @@ import java.util.List;
 import org.apache.commons.math3.random.SobolSequenceGenerator;
 
 import cl.cam.ac.uk.tuneful.util.TunefulFactory;
+import cl.cam.ac.uk.tuneful.util.Util;
 
 public class ConfigurationSampler {
 	List<String> allparamsNames = null;
 	Hashtable<String, ConfParam> paramRanges = null;
 	Hashtable<String, SobolSequenceGenerator> samplers = null;
+	Hashtable<String, Integer> samplersIndices = null;
+	String samplersPath;
 
 	public ConfigurationSampler() {
+		samplersPath = TunefulFactory.getTunefulHome() + "/samplersIndicies.ser";
 		allparamsNames = TunefulFactory.getTunableParams();
 		paramRanges = TunefulFactory.getTunableParamsRange();
 		samplers = new Hashtable<String, SobolSequenceGenerator>();
+		samplersIndices = new Hashtable<String, Integer>();
 		// new SobolSequenceGenerator(paramsNames.size());
+		samplersIndices= Util.loadTable(samplersPath);
+		System.out.println(">>> sample indices table size >>> " + samplersIndices.size());
 	}
 
 	public Hashtable<String, String> getNextSample(String appName) {
 		double[] sample = samplers.get(appName).nextVector();
+		Util.writeTable(samplers, samplersPath);
 		Hashtable<String, String> sampleConf = mapSampleToConf(sample, allparamsNames);
 		return sampleConf;
 
@@ -91,15 +99,23 @@ public class ConfigurationSampler {
 //	}
 
 	public Hashtable<String, String> sample(String appName, List<String> sigParams) {
-
-		double[] sample = samplers.get(appName).nextVector();
+		int index = 0;
+		if (samplersIndices.containsKey(appName)) {
+			index =samplersIndices.get(appName);
+		}
+		System.out.println(">>> current sampling index >>> " + index);
+		double[] sample = new SobolSequenceGenerator(sigParams.size()).skipTo(index);
+		samplersIndices.put(appName, index+1);
+		Util.writeTable(samplersIndices, samplersPath);
 		Hashtable<String, String> sampleConf = mapSampleToConf(sample, sigParams);
 		System.out.println("sample >>> " + sample);
 		System.out.println("mapped conf >>> " + sampleConf);
 		if (sigParams.size() < allparamsNames.size()) {
 			for (int i = 0; i < allparamsNames.size(); i++) {
 				String param = allparamsNames.get(i);
-				if (!sampleConf.containsKey(param) && getAvgValue(param)!=null) { // fixed param and param other than bool and enum, enum and bool will have null avg value
+				if (!sampleConf.containsKey(param) && getAvgValue(param) != null) { // fixed param and param other than
+																					// bool and enum, enum and bool will
+																					// have null avg value
 					sampleConf.put(param, getAvgValue(param));
 				}
 			}
@@ -110,6 +126,7 @@ public class ConfigurationSampler {
 
 	public void createNewSampler(String appName, int size) {
 		samplers.put(appName, new SobolSequenceGenerator(size));
+//		samplersIndices.put(appName, samplers.get(appName).getNextIndex());
 
 	}
 

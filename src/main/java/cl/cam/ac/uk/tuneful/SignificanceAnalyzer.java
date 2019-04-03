@@ -20,6 +20,7 @@ import java.util.Map;
 import org.apache.spark.SparkConf;
 
 import cl.cam.ac.uk.tuneful.util.TunefulFactory;
+import cl.cam.ac.uk.tuneful.util.Util;
 
 public class SignificanceAnalyzer {
 
@@ -31,8 +32,8 @@ public class SignificanceAnalyzer {
 	int n_samples_per_SA;
 	Hashtable<String, Integer> current_SA_round;
 	float fraction;
-	
-	private String sigParamsPath  ;
+
+	private String sigParamsPath;
 	private String n_executionsPath;
 	private String currentSARoundPath;
 
@@ -46,12 +47,12 @@ public class SignificanceAnalyzer {
 		sigParamsPath = TunefulFactory.getTunefulHome() + "/sigparams.ser";
 		n_executionsPath = TunefulFactory.getTunefulHome() + "/n_executions.ser";
 		currentSARoundPath = TunefulFactory.getTunefulHome() + "/currentSARound.ser";
-		loadTable(sigParamsPath, sigParamsNames );
-		loadTable(currentSARoundPath, current_SA_round );
-		loadTable(n_executionsPath , n_executions);
+		sigParamsNames = Util.loadTable(sigParamsPath);
+		current_SA_round = Util.loadTable(currentSARoundPath);
+		n_executions = Util.loadTable(n_executionsPath);
 		allparams = TunefulFactory.getTunableParamsRange();
 		fraction = 0.45f; // TODO: make configurable
-		
+
 	}
 
 	public Hashtable<String, String> suggestNextConf(String appName) {
@@ -78,10 +79,10 @@ public class SignificanceAnalyzer {
 			n_executions.put(appName, 0); // reset the number of execution for the new SA round
 		}
 		n_executions.put(appName, n_executions.get(appName) + 1); // increment number of samples
-		writeTable(n_executions, n_executionsPath);
-		writeTable(current_SA_round, currentSARoundPath);
-		writeTable(sigParamsNames, sigParamsPath);
-		
+		Util.writeTable(n_executions, n_executionsPath);
+		Util.writeTable(current_SA_round, currentSARoundPath);
+		Util.writeTable(sigParamsNames, sigParamsPath);
+
 		return TunefulFactory.getConfigurationSampler().sample(appName, sigParamsNames.get(appName));
 
 	}
@@ -132,10 +133,9 @@ public class SignificanceAnalyzer {
 
 		List<String> readSigParams = readSigParams(sigParamsFileName);
 		System.out.println(">> SA_round >>" + current_SA_round.get(appName) + ">> Sig Params" + readSigParams);
-		writeTable(sigParamsNames, sigParamsPath);
-		writeTable(current_SA_round, currentSARoundPath);
-		
-		
+		Util.writeTable(sigParamsNames, sigParamsPath);
+		Util.writeTable(current_SA_round, currentSARoundPath);
+
 		return readSigParams;
 
 	}
@@ -210,27 +210,6 @@ public class SignificanceAnalyzer {
 			e.printStackTrace();
 		}
 
-	}
-
-	public void loadTable(String path, Hashtable table) {
-		try {
-			FileInputStream fileIn = new FileInputStream(path);
-			ObjectInputStream in = new ObjectInputStream(fileIn);
-			table = (Hashtable) in.readObject();
-//		      System.out.println(h.toString( )); 
-		} catch (Exception e) {
-			System.out.println(e);
-		}
-	}
-
-	public void writeTable(Hashtable table, String path) {
-		try {
-			FileOutputStream fileOut = new FileOutputStream(path);
-			ObjectOutputStream out = new ObjectOutputStream(fileOut);
-			out.writeObject(table);
-		} catch (Exception e) {
-			System.out.println(e);
-		}
 	}
 
 }

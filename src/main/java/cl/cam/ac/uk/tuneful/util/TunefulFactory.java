@@ -84,6 +84,7 @@ public class TunefulFactory {
 	public static ConfigurationSampler getConfigurationSampler() {
 		if (configurationSampler == null) {
 			configurationSampler = new ConfigurationSampler();
+			
 
 		}
 		return configurationSampler;
