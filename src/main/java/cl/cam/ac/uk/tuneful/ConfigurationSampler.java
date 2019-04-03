@@ -38,7 +38,8 @@ public class ConfigurationSampler {
 		System.out.println(">> sample >> " + sample);
 		Hashtable<String, String> sampledConf = new Hashtable<String, String>();
 		for (int i = 0; i < params.size(); i++) {
-			ConfParam currentParam = paramRanges.get(params.get(i));
+			ConfParam currentParam = paramRanges.get(params.get(i).trim());
+			System.out.println(">> currentParam >>> " + currentParam.getName() );
 			if (currentParam.getType().equalsIgnoreCase("int")) {
 				// map to range
 				int conf = (int) (currentParam.getRange()[0]
@@ -128,6 +129,11 @@ public class ConfigurationSampler {
 		samplers.put(appName, new SobolSequenceGenerator(size));
 //		samplersIndices.put(appName, samplers.get(appName).getNextIndex());
 
+	}
+
+	public void resetIndex(String appName) {
+		samplersIndices.put(appName, 0);
+		Util.writeTable(samplersIndices, samplersPath);
 	}
 
 }

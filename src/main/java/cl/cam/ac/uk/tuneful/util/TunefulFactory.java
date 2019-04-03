@@ -100,10 +100,10 @@ public class TunefulFactory {
 
 	}
 
-	public static String getSamplesFileName(String appName, Integer integer) {
+	public static String getSamplesFilePath(String appName, Integer integer) {
 
 		final String BASE = "execution_samples_";
-		return BASE + appName + "_SA_" + integer;
+		return getTunefulHome() + "/" +BASE + appName + "_SA_" + integer;
 	}
 
 	public static Object getSigParamsFileName(String appName, Integer integer) {

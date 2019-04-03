@@ -64,9 +64,9 @@ public class ConfParam {
 		} else if (type.equals("int")) {
 			str += "\n\"type\":\"" + type + "\",\n \"min\":" + (int) range[0] + ",\n \"max\":" + (int) range[1];
 		} else {
-			str += "\n \"type\":\"" + type + "\",\n \"min\"=" + range[0] + ",\n \"max\":" + range[1];
+			str += "\n \"type\":\"" + type + "\",\n \"min\":" + range[0] + ",\n \"max\":" + range[1];
 		}
-		str += "\n\"size\":1\n},";
+		str += ",\n\"size\":1\n}";
 		return str;
 	}
 

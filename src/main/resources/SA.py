@@ -72,9 +72,10 @@ def get_sig_params (header , features , target , fraction):
   error_all_itr=[]
 
   n_params  = int(float(fraction) *len (header))
+  n_all_params = len (header)
 ####### build the model 100 time to overcome model randomness ###########
   for x in range (n_iterations):
-          all_params = [0] * 30
+          all_params = [0] * n_all_params
           model.fit (scaled_features , target)
           normalized_importance =  100 * (model.feature_importances_ /max (model.feature_importances_)) 
           indices  = normalized_importance.argsort()[-n_params:][::-1]
@@ -83,7 +84,7 @@ def get_sig_params (header , features , target , fraction):
           all_params [indices] = 1  # set the indices of the seleced params to 1
   #        print ("all_params >>>> " , all_params)
           sig_conf_all_iterations= np.append(sig_conf_all_iterations , all_params)
-  sig_conf_all_iterations = np.reshape (sig_conf_all_iterations ,  (n_iterations , 30))
+  sig_conf_all_iterations = np.reshape (sig_conf_all_iterations ,  (n_iterations , n_all_params))
   sig_conf_all_iterations = np.count_nonzero (sig_conf_all_iterations , axis = 0)    # count the occurances of each param in the sig params over all the interations
   header = np.array (header) 
   indices = sig_conf_all_iterations.argsort()[-n_params:][::-1] # select the params that have the most occurances in the sig params over all the interations
@@ -159,8 +160,8 @@ def write_to_file ( sig_params ,  res_file):
    
    file = open (res_file , "w")
    for x in sig_params :
-        file.write ( x + " , " )
-   file.write (  " \n" )
+        file.write ( x + "," )
+   file.write (  "\n" )
    file.close()
 #######################################
 #######################################

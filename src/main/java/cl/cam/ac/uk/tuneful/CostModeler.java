@@ -29,12 +29,12 @@ public class CostModeler {
 	public CostModeler() {
 		TUNEFUL_HOME = TunefulFactory.getTunefulHome(); // TODO: make configurable
 		SPEARMINT_FOLDER = "spearmint-lite";
-		MODEL_INPUT_PATH_BASE = TUNEFUL_HOME+ "/" + SPEARMINT_FOLDER + "/";
+		MODEL_INPUT_PATH_BASE = TUNEFUL_HOME + "/" + SPEARMINT_FOLDER + "/";
 		File directory = new File(TUNEFUL_HOME);
 		if (!directory.exists()) {
 			directory.mkdirs();
 		}
-	
+
 		copySpearmintFolderToTunefulHome();
 	}
 
@@ -107,7 +107,7 @@ public class CostModeler {
 
 	private void writeParamToFile(List<String> confParams, String filePath) {
 		try {
-			
+
 			String appModelInputPath = filePath;
 			FileWriter fileWriter = new FileWriter(appModelInputPath, true);
 			BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
@@ -115,6 +115,9 @@ public class CostModeler {
 			for (int i = 0; i < confParams.size(); i++) {
 				ConfParam currentParam = TunefulFactory.getSignificanceAnalyzer().getAllParams().get(confParams.get(i));
 				bufferedWriter.write(currentParam.toJsonString());
+				if (i != confParams.size() - 1) {  /// do not write ',' after the last element
+					bufferedWriter.write(",");
+				}
 			}
 			bufferedWriter.write("}\n");
 			bufferedWriter.flush();
@@ -144,7 +147,11 @@ public class CostModeler {
 		FileWriter fileWriter;
 		try {
 			String appModelInputPath = MODEL_INPUT_PATH_BASE + appName + "/results.dat";
-			fileWriter = new FileWriter(appModelInputPath);
+			File directory = new File(MODEL_INPUT_PATH_BASE + "/" + appName);
+			if (!directory.exists()) {
+				directory.mkdirs();
+			}
+			fileWriter = new FileWriter(appModelInputPath , true);
 			BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
 			List<String> confParams = TunefulFactory.getSignificanceAnalyzer().getSignificantParams(appName);
 			// TODO: remove after testing
@@ -189,7 +196,7 @@ public class CostModeler {
 //
 //	}
 
-	public  Hashtable<String, String> readPendingConf(String appName) {
+	public Hashtable<String, String> readPendingConf(String appName) {
 		Hashtable<String, String> conf = new Hashtable<String, String>();
 		try {
 			String appModelDir = MODEL_INPUT_PATH_BASE + appName + "/results.dat";
@@ -228,8 +235,8 @@ public class CostModeler {
 		Hashtable<String, String> conf = new Hashtable<String, String>();
 		String[] splittedLine = line.split(" ");
 		for (int i = 0; i < confParams.size(); i++) {
-			conf.put(confParams.get(i), splittedLine[i+2]);
-			System.out.println(">>> candidate conf >>> " + confParams.get(i)+ " >>>> " +  splittedLine[i+2]);
+			conf.put(confParams.get(i), splittedLine[i + 2]);
+			System.out.println(">>> candidate conf >>> " + confParams.get(i) + " >>>> " + splittedLine[i + 2]);
 		}
 		return conf;
 	}
@@ -333,7 +340,7 @@ public class CostModeler {
 //		conf.set("spark.executor.cores", 7+"");
 //
 //		new CostModeler().writeToModelInput(conf, 10.0, "test");
-		
+
 //
 
 //		try {
