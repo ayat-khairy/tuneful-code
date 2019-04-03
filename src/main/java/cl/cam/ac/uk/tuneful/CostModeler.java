@@ -3,16 +3,19 @@ package cl.cam.ac.uk.tuneful;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.Set;
 
 import org.apache.spark.SparkConf;
@@ -25,6 +28,8 @@ public class CostModeler {
 	private String MODEL_INPUT_PATH_BASE;
 	private String TUNEFUL_HOME;
 	private String SPEARMINT_FOLDER;
+	Hashtable<String, Integer> n_executions;
+	private int MAX_N_EXEC = 5;
 
 	public CostModeler() {
 		TUNEFUL_HOME = TunefulFactory.getTunefulHome(); // TODO: make configurable
@@ -36,6 +41,7 @@ public class CostModeler {
 		}
 
 		copySpearmintFolderToTunefulHome();
+		n_executions = TunefulFactory.get_n_executions();
 	}
 
 	public void copySpearmintFolderToTunefulHome() {
@@ -115,7 +121,7 @@ public class CostModeler {
 			for (int i = 0; i < confParams.size(); i++) {
 				ConfParam currentParam = TunefulFactory.getSignificanceAnalyzer().getAllParams().get(confParams.get(i));
 				bufferedWriter.write(currentParam.toJsonString());
-				if (i != confParams.size() - 1) {  /// do not write ',' after the last element
+				if (i != confParams.size() - 1) { /// do not write ',' after the last element
 					bufferedWriter.write(",");
 				}
 			}
@@ -130,16 +136,67 @@ public class CostModeler {
 	}
 
 	public SparkConf findCandidateConf(SparkConf conf, String appName) {
-		// generate pending conf using speamint
-		runSpearmint(appName);
-		Hashtable<String, String> tunedConf = readPendingConf(appName);
+		// TODO: update to the EI instead
+		Hashtable<String, String> tunedConf = null;
+		if (n_executions.get(appName) > MAX_N_EXEC) // converge after this number of time
+		{
+			tunedConf = getBestConf(appName);
+		} else {// generate pending conf using speamint
+			runSpearmint(appName);
+			tunedConf = readPendingConf(appName);
+		}
 		SparkConf updatedConf = conf;
 		Set<String> keys = tunedConf.keySet();
 		for (String key : keys) {
 			updatedConf.set(key, tunedConf.get(key));
 		}
-
+		n_executions.put(appName, n_executions.get(appName) + 1);
 		return updatedConf;
+	}
+
+	private Hashtable<String, String> getBestConf(String appName) {
+		
+		// read the stored conf and exec time and select the one with the min exec time
+		 String fileName= TunefulFactory.getAppExecTimeFilePath(appName);
+	     File file= new File(fileName);
+
+	        // this gives you a 2-dimensional array of strings
+	        List<List<String>> lines = new ArrayList<>();
+	        Scanner inputStream;
+
+	        try{
+	            inputStream = new Scanner(file);
+
+	            while(inputStream.hasNext()){
+	                String line= inputStream.next();
+	                String[] values = line.split(",");
+	                // this adds the currently parsed line to the 2-dimensional string array
+	                lines.add(Arrays.asList(values));
+	            }
+
+	            inputStream.close();
+	        }catch (FileNotFoundException e) {
+	            e.printStackTrace();
+	        }
+
+	        // the following code lets you iterate through the 2-dimensional array
+	        int lineNo = 1;
+	       int  min_time  = Integer.parseInt(lines.get(0).get(TunefulFactory.getTunableParams().size()));
+	       int best_conf_index = 0 ;
+	       int index = 1 ;
+	        for(List<String> line: lines) {
+	        	int current_time = Integer.parseInt(line.get(TunefulFactory.getTunableParams().size()));
+	        	if (current_time < min_time)
+	        		best_conf_index = index ;
+	        	index ++;
+	        
+	        }
+	        Hashtable<String, String> bestConfTable = new Hashtable<String , String>();
+	        for (int i = 0; i < TunefulFactory.getTunableParams().size(); i++) {
+				bestConfTable.put ( TunefulFactory.getTunableParams().get(i) , lines.get(best_conf_index).get(i));
+			}
+		
+		return bestConfTable;
 	}
 
 	public void writeToModelInput(SparkConf sparkConf, double cost, String appName) {
@@ -151,7 +208,7 @@ public class CostModeler {
 			if (!directory.exists()) {
 				directory.mkdirs();
 			}
-			fileWriter = new FileWriter(appModelInputPath , true);
+			fileWriter = new FileWriter(appModelInputPath, true);
 			BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
 			List<String> confParams = TunefulFactory.getSignificanceAnalyzer().getSignificantParams(appName);
 			// TODO: remove after testing

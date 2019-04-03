@@ -51,14 +51,15 @@ public class SignificanceAnalyzer {
 		sigParamsNames = new Hashtable<String, List<String>>();
 		allParamsNames = TunefulFactory.getTunableParams();
 		sigParamsPath = TunefulFactory.getTunefulHome() + "/sigparams.ser";
-		n_executionsPath = TunefulFactory.getTunefulHome() + "/n_executions.ser";
+		//n_executionsPath = TunefulFactory.getTunefulHome() + "/n_executions.ser";
 		currentSARoundPath = TunefulFactory.getTunefulHome() + "/currentSARound.ser";
 		sigParamsNames = Util.loadTable(sigParamsPath);
 		current_SA_round = Util.loadTable(currentSARoundPath);
-		n_executions = Util.loadTable(n_executionsPath);
+		//n_executions = Util.loadTable(n_executionsPath);
 		allparams = TunefulFactory.getTunableParamsRange();
 		fraction = 0.8f; // TODO: make configurable
 		copySAScriptToTunefulHome();
+		n_executions = TunefulFactory.get_n_executions();
 
 	}
 

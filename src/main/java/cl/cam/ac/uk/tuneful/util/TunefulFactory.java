@@ -19,6 +19,8 @@ public class TunefulFactory {
 	static ConfigurationSampler configurationSampler = null;
 	static SignificanceAnalyzer significanceAnalyzer = null;
 	static HttpConnector connector = new HttpConnector();
+	static Hashtable<String, Integer>n_executions;// number of WL executions
+	static String n_executionsPath = TunefulFactory.getTunefulHome() + "/n_executions.ser";
 
 	public static HttpConnector getHttpConnector() {
 		return connector;
@@ -84,7 +86,6 @@ public class TunefulFactory {
 	public static ConfigurationSampler getConfigurationSampler() {
 		if (configurationSampler == null) {
 			configurationSampler = new ConfigurationSampler();
-			
 
 		}
 		return configurationSampler;
@@ -103,7 +104,7 @@ public class TunefulFactory {
 	public static String getSamplesFilePath(String appName, Integer integer) {
 
 		final String BASE = "execution_samples_";
-		return getTunefulHome() + "/" +BASE + appName + "_SA_" + integer;
+		return getTunefulHome() + "/" + BASE + appName + "_SA_" + integer;
 	}
 
 	public static Object getSigParamsFileName(String appName, Integer integer) {
@@ -112,8 +113,25 @@ public class TunefulFactory {
 	}
 
 	public static String getTunefulHome() {
-		// TODO read from env var or use default value
+		// TODO read from TUNEFUL_HOME env var or use default value
 		return "/home/ayat/ayat/tuneful";
+	}
+
+	public static Hashtable<String , Integer> get_n_executions() {
+		if (n_executions == null) {
+			n_executions = new Hashtable<String, Integer>();
+			n_executions = Util.loadTable(n_executionsPath);
+		}
+		return n_executions;
+	}
+
+	public void set_n_executions(Hashtable n_executions) {
+		this.n_executions = n_executions;
+	}
+
+	public static String getAppExecTimeFilePath(String appName) {
+		// TODO Auto-generated method stub
+		return getTunefulHome() + "/" +appName+"conf_exec_time.csv";
 	}
 
 }
