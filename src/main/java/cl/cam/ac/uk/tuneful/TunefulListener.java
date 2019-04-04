@@ -96,7 +96,7 @@ public class TunefulListener extends SparkListener {
 				if (sparkConf.contains(key)) {
 					appExec += sparkConf.get(key) + ",";
 				} else
-					appExec += "F" + ","; // fixed parameter
+					appExec += "DEF" + ","; // fixed parameter, set to default
 			}
 			bufferedWriter.write(appExec + execTime + "\n");
 			bufferedWriter.flush();

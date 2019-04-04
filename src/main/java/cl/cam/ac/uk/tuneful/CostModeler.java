@@ -143,7 +143,9 @@ public class CostModeler {
 		Hashtable<String, String> tunedConf = null;
 		if (n_executions.get(appName) > MAX_N_EXEC) // converge after this number of time
 		{
+			System.out.println(">>>> Tuning Finished >>> suggesting the best conf ...");
 			tunedConf = getBestConf(appName);
+			System.out.println(">>>>> " + tunedConf);
 		} else {// generate pending conf using speamint
 			runSpearmint(appName);
 			tunedConf = readPendingConf(appName);
@@ -159,7 +161,7 @@ public class CostModeler {
 	}
 
 	private Hashtable<String, String> getBestConf(String appName) {
-
+		int execTimeIndex = TunefulFactory.getTunableParams().size();
 		// read the stored conf and exec time and select the one with the min exec time
 		String fileName = TunefulFactory.getAppExecTimeFilePath(appName);
 		File file = new File(fileName);
@@ -182,26 +184,31 @@ public class CostModeler {
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
-
-		// the following code lets you iterate through the 2-dimensional array
-		int lineNo = 1;
-		int min_time = Integer.parseInt(lines.get(0).get(TunefulFactory.getTunableParams().size()));
+		int min_time = Integer.parseInt(lines.get(1).get(execTimeIndex)); // start from line
+																			// 1 to skip the
+																			// header
 		int best_conf_index = 0;
-		int index = 1;
+		int index = 0;
 		for (List<String> line : lines) {
 			try {
-				int current_time = Integer.parseInt(line.get(TunefulFactory.getTunableParams().size()));
-				if (current_time < min_time)
+				int current_time = Integer.parseInt(line.get(execTimeIndex));
+				if (current_time < min_time) {
+					min_time = current_time;
 					best_conf_index = index;
+				}
 				index++;
 			} catch (NumberFormatException e) {
 				index++; // skip the header lines
 			}
 
 		}
+		System.out.println(">> best conf index >>> " + best_conf_index);
 		Hashtable<String, String> bestConfTable = new Hashtable<String, String>();
 		for (int i = 0; i < TunefulFactory.getTunableParams().size(); i++) {
-			bestConfTable.put(TunefulFactory.getTunableParams().get(i), lines.get(best_conf_index).get(i));
+			if (!lines.get(best_conf_index).get(i).equals("DEF")) { // set the parameters that are not set to the
+																	// default value
+				bestConfTable.put(TunefulFactory.getTunableParams().get(i), lines.get(best_conf_index).get(i));
+			}
 		}
 
 		return bestConfTable;
