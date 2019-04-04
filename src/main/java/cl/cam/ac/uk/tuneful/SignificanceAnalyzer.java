@@ -40,6 +40,7 @@ public class SignificanceAnalyzer {
 	private String sigParamsPath;
 	private String n_executionsPath;
 	private String currentSARoundPath;
+	int MAX_SA_ROUNDS = 2;//TODO: make configurable
 
 	public SignificanceAnalyzer() {
 		TUNEFUL_HOME = TunefulFactory.getTunefulHome();
@@ -51,7 +52,7 @@ public class SignificanceAnalyzer {
 		sigParamsNames = new Hashtable<String, List<String>>();
 		allParamsNames = TunefulFactory.getTunableParams();
 		sigParamsPath = TunefulFactory.getTunefulHome() + "/sigparams.ser";
-		//n_executionsPath = TunefulFactory.getTunefulHome() + "/n_executions.ser";
+		n_executionsPath = TunefulFactory.getExecutionsPath() ;
 		currentSARoundPath = TunefulFactory.getTunefulHome() + "/currentSARound.ser";
 		sigParamsNames = Util.loadTable(sigParamsPath);
 		current_SA_round = Util.loadTable(currentSARoundPath);
@@ -122,6 +123,7 @@ public class SignificanceAnalyzer {
 			p = Runtime.getRuntime().exec(command);
 			p.waitFor();
 			BufferedReader bri = new BufferedReader(new InputStreamReader(p.getInputStream()));
+			
 			BufferedReader bre = new BufferedReader(new InputStreamReader(p.getErrorStream()));
 			String line;
 			while ((line = bri.readLine()) != null) {
@@ -208,7 +210,7 @@ public class SignificanceAnalyzer {
 	public boolean isSigParamDetected(String appName) {
 		if (current_SA_round.get(appName) == null)
 			return false;
-		return current_SA_round.get(appName).intValue() == 2;
+		return current_SA_round.get(appName).intValue() == MAX_SA_ROUNDS;
 	}
 
 	public void storeAppExecution(SparkConf sparkConf, long execTime, String appName) {

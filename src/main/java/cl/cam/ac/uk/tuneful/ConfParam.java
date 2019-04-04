@@ -58,15 +58,25 @@ public class ConfParam {
 	}
 
 	public String toJsonString() {
+		String valuesStr = "[";
+	
 		String str = "\"" + name +"\":{" + "\"name\":\"" + name + "\",\n";
-		if (type.equals("bolean") || type.equals("enum")) {
-			str += "\"type\":\"enum\"" + ",\n\"options\":" + values;
+		if (type.equals("boolean") || type.equals("enum")) {
+			for (int i = 0; i < values.length; i++) {
+				valuesStr += "\""+ values[i] + "\",";				
+			}
+			valuesStr = valuesStr.substring(0, valuesStr.lastIndexOf(',')) + "]";
+			str += "\"options\":" + valuesStr + ",\n";
+			str += "\"type\":\"enum\"" + ",\n";
+			str += "\n\"size\":1\n}";
+//			str += "\n\"size\":"+ values.length+ "\n}";
 		} else if (type.equals("int")) {
-			str += "\n\"type\":\"" + type + "\",\n \"min\":" + (int) range[0] + ",\n \"max\":" + (int) range[1];
+			str += "\n\"type\":\"" + type + "\",\n \"min\":" + (int) range[0] + ",\n \"max\":" + (int) range[1] + ",";
+			str += "\n\"size\":1\n}";
 		} else {
-			str += "\n \"type\":\"" + type + "\",\n \"min\":" + range[0] + ",\n \"max\":" + range[1];
+			str += "\n \"type\":\"" + type + "\",\n \"min\":" + range[0] + ",\n \"max\":" + range[1] +",";
+			str += "\n\"size\":1\n}";
 		}
-		str += ",\n\"size\":1\n}";
 		return str;
 	}
 

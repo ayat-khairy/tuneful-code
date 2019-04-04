@@ -86,13 +86,17 @@ public class TunefulListener extends SparkListener {
 				for (int i = 0; i < TunefulFactory.getTunableParams().size(); i++) {
 					header += TunefulFactory.getTunableParams().get(i) + ",";
 				}
-				bufferedWriter.write(header + "\n");
+				bufferedWriter.write(header + "exec_time" + "\n");
 			}
 
 			String appExec = "";
 			// read all tunable params, write header, store in csv file
 			for (int i = 0; i < TunefulFactory.getTunableParams().size(); i++) {
-				appExec += TunefulFactory.getTunableParams().get(i) + ",";
+				String key = TunefulFactory.getTunableParams().get(i);
+				if (sparkConf.contains(key)) {
+					appExec += sparkConf.get(key) + ",";
+				} else
+					appExec += "F" + ","; // fixed parameter
 			}
 			bufferedWriter.write(appExec + execTime + "\n");
 			bufferedWriter.flush();

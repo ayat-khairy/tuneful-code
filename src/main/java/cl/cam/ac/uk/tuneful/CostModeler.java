@@ -21,6 +21,7 @@ import java.util.Set;
 import org.apache.spark.SparkConf;
 
 import cl.cam.ac.uk.tuneful.util.TunefulFactory;
+import cl.cam.ac.uk.tuneful.util.Util;
 
 public class CostModeler {
 
@@ -29,7 +30,8 @@ public class CostModeler {
 	private String TUNEFUL_HOME;
 	private String SPEARMINT_FOLDER;
 	Hashtable<String, Integer> n_executions;
-	private int MAX_N_EXEC = 5;
+	private int MAX_N_EXEC = 3;
+	private String n_executionsPath;
 
 	public CostModeler() {
 		TUNEFUL_HOME = TunefulFactory.getTunefulHome(); // TODO: make configurable
@@ -42,6 +44,7 @@ public class CostModeler {
 
 		copySpearmintFolderToTunefulHome();
 		n_executions = TunefulFactory.get_n_executions();
+		n_executionsPath = TunefulFactory.getExecutionsPath();
 	}
 
 	public void copySpearmintFolderToTunefulHome() {
@@ -151,51 +154,56 @@ public class CostModeler {
 			updatedConf.set(key, tunedConf.get(key));
 		}
 		n_executions.put(appName, n_executions.get(appName) + 1);
+		Util.writeTable(n_executions, n_executionsPath);
 		return updatedConf;
 	}
 
 	private Hashtable<String, String> getBestConf(String appName) {
-		
+
 		// read the stored conf and exec time and select the one with the min exec time
-		 String fileName= TunefulFactory.getAppExecTimeFilePath(appName);
-	     File file= new File(fileName);
+		String fileName = TunefulFactory.getAppExecTimeFilePath(appName);
+		File file = new File(fileName);
 
-	        // this gives you a 2-dimensional array of strings
-	        List<List<String>> lines = new ArrayList<>();
-	        Scanner inputStream;
+		// this gives you a 2-dimensional array of strings
+		List<List<String>> lines = new ArrayList<>();
+		Scanner inputStream;
 
-	        try{
-	            inputStream = new Scanner(file);
+		try {
+			inputStream = new Scanner(file);
 
-	            while(inputStream.hasNext()){
-	                String line= inputStream.next();
-	                String[] values = line.split(",");
-	                // this adds the currently parsed line to the 2-dimensional string array
-	                lines.add(Arrays.asList(values));
-	            }
-
-	            inputStream.close();
-	        }catch (FileNotFoundException e) {
-	            e.printStackTrace();
-	        }
-
-	        // the following code lets you iterate through the 2-dimensional array
-	        int lineNo = 1;
-	       int  min_time  = Integer.parseInt(lines.get(0).get(TunefulFactory.getTunableParams().size()));
-	       int best_conf_index = 0 ;
-	       int index = 1 ;
-	        for(List<String> line: lines) {
-	        	int current_time = Integer.parseInt(line.get(TunefulFactory.getTunableParams().size()));
-	        	if (current_time < min_time)
-	        		best_conf_index = index ;
-	        	index ++;
-	        
-	        }
-	        Hashtable<String, String> bestConfTable = new Hashtable<String , String>();
-	        for (int i = 0; i < TunefulFactory.getTunableParams().size(); i++) {
-				bestConfTable.put ( TunefulFactory.getTunableParams().get(i) , lines.get(best_conf_index).get(i));
+			while (inputStream.hasNext()) {
+				String line = inputStream.next();
+				String[] values = line.split(",");
+				// this adds the currently parsed line to the 2-dimensional string array
+				lines.add(Arrays.asList(values));
 			}
-		
+
+			inputStream.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+
+		// the following code lets you iterate through the 2-dimensional array
+		int lineNo = 1;
+		int min_time = Integer.parseInt(lines.get(0).get(TunefulFactory.getTunableParams().size()));
+		int best_conf_index = 0;
+		int index = 1;
+		for (List<String> line : lines) {
+			try {
+				int current_time = Integer.parseInt(line.get(TunefulFactory.getTunableParams().size()));
+				if (current_time < min_time)
+					best_conf_index = index;
+				index++;
+			} catch (NumberFormatException e) {
+				index++; // skip the header lines
+			}
+
+		}
+		Hashtable<String, String> bestConfTable = new Hashtable<String, String>();
+		for (int i = 0; i < TunefulFactory.getTunableParams().size(); i++) {
+			bestConfTable.put(TunefulFactory.getTunableParams().get(i), lines.get(best_conf_index).get(i));
+		}
+
 		return bestConfTable;
 	}
 
@@ -230,6 +238,7 @@ public class CostModeler {
 	private String getConfAsstr(Hashtable conf, List<String> confParams) {
 		String confAsStr = "";
 		for (int i = 0; i < confParams.size(); i++) {
+
 			confAsStr += conf.get(confParams.get(i)) + " ";
 		}
 		return confAsStr;
@@ -308,7 +317,11 @@ public class CostModeler {
 //		confParams.add("spark.executor.cores");
 		////////////////////////////////
 		for (int i = 0; i < confParams.size(); i++) {
-			tunableParams.put(confParams.get(i), sparkconf.get(confParams.get(i)));
+			String value = sparkconf.get(confParams.get(i));
+			if (TunefulFactory.getTunableParamsRange().get(confParams.get(i)).getType().equals("int")) {
+				value = value.replaceAll("\\D*", ""); // get rid of any unit
+			}
+			tunableParams.put(confParams.get(i), value);
 		}
 		return tunableParams;
 	}

@@ -19,7 +19,7 @@ public class TunefulFactory {
 	static ConfigurationSampler configurationSampler = null;
 	static SignificanceAnalyzer significanceAnalyzer = null;
 	static HttpConnector connector = new HttpConnector();
-	static Hashtable<String, Integer>n_executions;// number of WL executions
+	static Hashtable<String, Integer>n_executions = null;// number of WL executions
 	static String n_executionsPath = TunefulFactory.getTunefulHome() + "/n_executions.ser";
 
 	public static HttpConnector getHttpConnector() {
@@ -132,6 +132,10 @@ public class TunefulFactory {
 	public static String getAppExecTimeFilePath(String appName) {
 		// TODO Auto-generated method stub
 		return getTunefulHome() + "/" +appName+"conf_exec_time.csv";
+	}
+
+	public static String getExecutionsPath() {
+		return getTunefulHome() +  "/n_executions.ser";
 	}
 
 }

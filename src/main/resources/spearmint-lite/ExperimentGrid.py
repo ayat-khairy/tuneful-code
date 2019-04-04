@@ -262,7 +262,10 @@ class GridMap:
                     index += 1
 
             elif variable['type'] == 'enum':
+                print (" >>>>>>>> EXP Grid  >>>> " , str (len (variable['options']) ) )
+                print (" >>>>>>>> EXP Grid  >>>> " , variable['options']) 
                 for dd in xrange(variable['size']):
+                   # print (" >>>>>>>> EXP Grid  >>>> " , v.pop(0) )
                     unit[index] = variable['options'].index(v.pop(0))
                     index += 1
 
